@@ -22,28 +22,28 @@ jobs:
           - { id: bun, runtime: bun }
           - { id: deno, runtime: deno }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - name: Setup pnpm
         if: matrix.runtime == 'node'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.4.0
 
       - name: Setup Node.js
         if: matrix.runtime == 'node'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ matrix.version }}
           cache: pnpm
 
       - name: Setup Bun
         if: matrix.runtime == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@v2.2.0
 
       - name: Setup Deno
         if: matrix.runtime == 'deno'
-        uses: denoland/setup-deno@v2
+        uses: denoland/setup-deno@v2.0.4
         with:
-          deno-version: v2.x
+          deno-version: 2.8.3
 
       - name: Install dependencies (pnpm)
         if: matrix.runtime == 'node'
@@ -75,7 +75,7 @@ jobs:
 
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: results-${{ matrix.id }}
           path: results/
@@ -87,14 +87,14 @@ jobs:
     if: always() && needs.bench.result != 'cancelled'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4.0
         with:
-          node-version: "24"
+          node-version: "24.16.0"
 
       - name: Download all results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           pattern: results-*
           path: results
@@ -108,13 +108,13 @@ jobs:
         run: cat RESULTS.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: report
           path: RESULTS.md
 
       - name: Upload site
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: site
           path: site/
@@ -138,25 +138,25 @@ jobs:
           fi
 
       # Checkout only so pnpm/action-setup can read the pinned packageManager.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
         if: steps.creds.outputs.available == 'true'
 
       - name: Download site
         if: steps.creds.outputs.available == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           name: site
           path: site
 
       - name: Setup pnpm
         if: steps.creds.outputs.available == 'true'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.4.0
 
       - name: Setup Node.js
         if: steps.creds.outputs.available == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
-          node-version: "24"
+          node-version: "24.16.0"
 
       - name: Deploy to Cloudflare Workers
         if: steps.creds.outputs.available == 'true'
