@@ -19,18 +19,18 @@ jobs:
       # Head (the PR merge commit) in the default path, base in ./base —
       # both run on the same machine so the hardware is controlled and the
       # diff reflects the code/dependency change.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4.0
         with:
-          node-version: "24"
+          node-version: "24.16.0"
           cache: pnpm
 
       - name: Install dependencies
@@ -70,7 +70,7 @@ jobs:
         run: node src/runner/compare.ts /tmp/base.json /tmp/head.json --out /tmp/comment.md
 
       - name: Post sticky PR comment
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v2.9.4
         with:
           header: benchmark-comparison
           path: /tmp/comment.md
