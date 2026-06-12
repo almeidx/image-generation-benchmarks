@@ -6,4 +6,11 @@ import { imageCompositing } from "./image-compositing.ts";
 import { ogCard } from "./og-card.ts";
 import { bezierPaths } from "./bezier-paths.ts";
 
-export const scenarios: Scenario[] = [shapes, gradients, text, imageCompositing, ogCard, bezierPaths];
+export const scenarios: Scenario[] = [
+	shapes,
+	gradients,
+	text,
+	imageCompositing,
+	ogCard,
+	bezierPaths,
+];

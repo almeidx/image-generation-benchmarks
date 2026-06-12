@@ -9,20 +9,20 @@ most portable across runtimes, or fewest native dependencies.
 
 ## Candidates
 
-| Library | Paradigm | Engine | Encodes |
-| --- | --- | --- | --- |
-| [@napi-rs/canvas](https://github.com/Brooooooklyn/canvas) | Canvas API | Skia (native, N-API) | png, jpeg, webp, avif |
-| [skia-canvas](https://github.com/samizdatco/skia-canvas) | Canvas API | Skia (native, N-API) | png, jpeg, webp, svg |
-| [canvas](https://github.com/Automattic/node-canvas) (node-canvas) | Canvas API | Cairo (native) | png, jpeg, svg |
-| [canvaskit-wasm](https://www.npmjs.com/package/canvaskit-wasm) | Canvas API | Skia (WebAssembly) | png, webp* |
-| [pureimage](https://github.com/joshmarinacci/node-pureimage) | Canvas API | Pure JavaScript | png, jpeg |
-| [takumi](https://github.com/kane50613/takumi) (@takumi-rs/core) | Declarative (JSX/CSS) | Rust (N-API) | png, jpeg, webp |
-| [satori](https://github.com/vercel/satori) + [resvg-js](https://github.com/yisibl/resvg-js) | Declarative (JSX/CSS) | Yoga + resvg | png, svg |
+| Library                                                                                     | Paradigm              | Engine               | Encodes               |
+| ------------------------------------------------------------------------------------------- | --------------------- | -------------------- | --------------------- |
+| [@napi-rs/canvas](https://github.com/Brooooooklyn/canvas)                                   | Canvas API            | Skia (native, N-API) | png, jpeg, webp, avif |
+| [skia-canvas](https://github.com/samizdatco/skia-canvas)                                    | Canvas API            | Skia (native, N-API) | png, jpeg, webp, svg  |
+| [canvas](https://github.com/Automattic/node-canvas) (node-canvas)                           | Canvas API            | Cairo (native)       | png, jpeg, svg        |
+| [canvaskit-wasm](https://www.npmjs.com/package/canvaskit-wasm)                              | Canvas API            | Skia (WebAssembly)   | png, webp\*           |
+| [pureimage](https://github.com/joshmarinacci/node-pureimage)                                | Canvas API            | Pure JavaScript      | png, jpeg             |
+| [takumi](https://github.com/kane50613/takumi) (@takumi-rs/core)                             | Declarative (JSX/CSS) | Rust (N-API)         | png, jpeg, webp       |
+| [satori](https://github.com/vercel/satori) + [resvg-js](https://github.com/yisibl/resvg-js) | Declarative (JSX/CSS) | Yoga + resvg         | png, svg              |
 
 \* canvaskit-wasm's prebuilt module silently falls back to PNG for codecs it doesn't include;
 the harness probes at setup and only benchmarks formats that genuinely encode.
 
-`sharp` was considered and deliberately excluded — it's an image *processing* library, a
+`sharp` was considered and deliberately excluded — it's an image _processing_ library, a
 different category from drawing/layout engines.
 
 ## How fairness is enforced
@@ -36,7 +36,7 @@ different category from drawing/layout engines.
   maintainer-recommended async path (`canvas.encode()`, `canvas.toBuffer()`, callback
   `toBuffer`, `renderer.render()`, `satori()` + `Resvg.render()`).
 - **Setup is measured but reported separately.** Module import, font registration, image
-  decoding, and first render are recorded once per process as *cold-start cost* — a metric in
+  decoding, and first render are recorded once per process as _cold-start cost_ — a metric in
   its own right (serverless!) — and never mixed into the steady-state numbers.
 - **Identical encode settings** (quality 80) wherever the format takes a quality parameter.
 - **Feature gaps are findings, not crashes.** Every adapter × scenario × format combination is
@@ -47,14 +47,14 @@ different category from drawing/layout engines.
 
 ## Scenarios
 
-| Scenario | Exercises | Paradigms |
-| --- | --- | --- |
-| shapes | rect/rounded-rect/circle fills, translucency, borders | both |
-| gradients | linear + radial gradients, full-bleed and clipped | both |
-| text | weights, sizes, centering, multi-line body copy | both |
-| image-compositing | photo cover-scaling, overlay, circular avatar clip | both |
-| og-card | the realistic 1200×630 social-card workload | both |
-| bezier-paths | 240 cubic beziers + 80 arcs + dashed quadratics (seeded) | canvas only |
+| Scenario          | Exercises                                                | Paradigms   |
+| ----------------- | -------------------------------------------------------- | ----------- |
+| shapes            | rect/rounded-rect/circle fills, translucency, borders    | both        |
+| gradients         | linear + radial gradients, full-bleed and clipped        | both        |
+| text              | weights, sizes, centering, multi-line body copy          | both        |
+| image-compositing | photo cover-scaling, overlay, circular avatar clip       | both        |
+| og-card           | the realistic 1200×630 social-card workload              | both        |
+| bezier-paths      | 240 cubic beziers + 80 arcs + dashed quadratics (seeded) | canvas only |
 
 ## Output validation
 
@@ -72,13 +72,16 @@ Two layers, by design:
 ## Running locally
 
 ```sh
-npm ci
-npm run bench            # full mitata run  → results/<runtime>.json
-npm run bench:quick      # fast indicative run
-npm run validate         # render + compare against committed baselines
-npm run report           # aggregate results/*.json → results/RESULTS.md + site data
-npm run baselines:update # regenerate baselines (linux + node, review the diff!)
+pnpm install
+pnpm bench            # full mitata run  → results/<runtime>.json
+pnpm bench:quick      # fast indicative run
+pnpm validate         # render + compare against committed baselines
+pnpm report           # aggregate results/*.json → results/RESULTS.md + site data
+pnpm baselines:update # regenerate baselines (linux + node, review the diff!)
 ```
+
+Checks (also run on every PR): `pnpm typecheck`, `pnpm lint`, `pnpm fmt:check` (oxlint +
+oxfmt, tab-indented).
 
 Same harness on other runtimes:
 
@@ -104,7 +107,7 @@ Useful flags: `--adapters napi-rs-canvas,takumi`, `--scenarios og-card`, `--out 
 
 - **Library:** implement the `Adapter` interface in `src/adapters/<name>.ts` (see
   `src/types.ts`), register it in `src/adapters/index.ts`, add the pinned dependency, run
-  `npm run baselines:update`, and add the package to the `candidate libraries` group in
+  `pnpm baselines:update`, and add the package to the `candidate libraries` group in
   `.github/renovate.json`.
 - **Scenario:** add `src/scenarios/<name>.ts` exporting a `Scenario` with `drawCanvas` and/or
   `element`, register it in `src/scenarios/index.ts`, and regenerate baselines. Keep both

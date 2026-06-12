@@ -1,31 +1,31 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":pinAllExceptPeerDependencies", ":semanticCommitsDisabled"],
-  "labels": ["dependencies"],
-  "rangeStrategy": "pin",
-  "packageRules": [
-    {
-      "description": "Everything that is not a benchmark candidate (harness, types, tooling)",
-      "matchPackageNames": ["*"],
-      "groupName": "harness dependencies"
-    },
-    {
-      "description": "Benchmark candidate libraries and their companions — grouped so the PR benchmark comment shows the performance impact of each batch",
-      "matchPackageNames": [
-        "@napi-rs/canvas",
-        "skia-canvas",
-        "canvas",
-        "canvaskit-wasm",
-        "pureimage",
-        "@takumi-rs/core",
-        "@takumi-rs/helpers",
-        "satori",
-        "@resvg/resvg-js",
-        "@resvg/resvg-wasm"
-      ],
-      "groupName": "candidate libraries",
-      "labels": ["dependencies", "candidates"],
-      "schedule": ["before 6am on monday"]
-    }
-  ]
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:recommended", ":pinAllExceptPeerDependencies", ":semanticCommitsDisabled"],
+	"labels": ["dependencies"],
+	"rangeStrategy": "pin",
+	"packageRules": [
+		{
+			"description": "Everything that is not a benchmark candidate (harness, types, tooling)",
+			"matchPackageNames": ["*"],
+			"groupName": "harness dependencies"
+		},
+		{
+			"description": "Benchmark candidate libraries and their companions — grouped so the PR benchmark comment shows the performance impact of each batch",
+			"matchPackageNames": [
+				"@napi-rs/canvas",
+				"skia-canvas",
+				"canvas",
+				"canvaskit-wasm",
+				"pureimage",
+				"@takumi-rs/core",
+				"@takumi-rs/helpers",
+				"satori",
+				"@resvg/resvg-js",
+				"@resvg/resvg-wasm"
+			],
+			"groupName": "candidate libraries",
+			"labels": ["dependencies", "candidates"],
+			"schedule": ["before 6am on monday"]
+		}
+	]
 }

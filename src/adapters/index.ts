@@ -8,11 +8,11 @@ import { takumiAdapter } from "./takumi.ts";
 import { satoriAdapter } from "./satori.ts";
 
 export const adapters: Adapter[] = [
-  napiRsCanvasAdapter,
-  skiaCanvasAdapter,
-  nodeCanvasAdapter,
-  canvaskitWasmAdapter,
-  pureimageAdapter,
-  takumiAdapter,
-  satoriAdapter,
+	napiRsCanvasAdapter,
+	skiaCanvasAdapter,
+	nodeCanvasAdapter,
+	canvaskitWasmAdapter,
+	pureimageAdapter,
+	takumiAdapter,
+	satoriAdapter,
 ];

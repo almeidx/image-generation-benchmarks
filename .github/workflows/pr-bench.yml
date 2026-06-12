@@ -26,15 +26,24 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: npm
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: |
-          npm ci
-          npm run typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Check formatting
+        run: pnpm fmt:check
 
       - name: Bench head
         run: node src/runner/bench.ts --quick --out /tmp/head.json
@@ -43,7 +52,12 @@ jobs:
         run: |
           if [ -f base/src/runner/bench.ts ]; then
             cd base
-            npm ci
+            # Fall back to npm for base commits that predate the pnpm switch.
+            if [ -f pnpm-lock.yaml ]; then
+              pnpm install --frozen-lockfile
+            else
+              npm ci
+            fi
             node src/runner/bench.ts --quick --out /tmp/base.json
           else
             echo "base has no benchmark runner — reporting head-only numbers"

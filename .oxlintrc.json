@@ -1,0 +1,17 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"categories": {
+		"correctness": "error",
+		"suspicious": "warn"
+	},
+	"overrides": [
+		{
+			// Scenario draw functions keep helpers inline: they are the timed
+			// workload, and hoisting them would change what is measured.
+			"files": ["src/scenarios/**"],
+			"rules": {
+				"unicorn/consistent-function-scoping": "off"
+			}
+		}
+	]
+}

@@ -1,100 +1,174 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>JavaScript Image Generation Benchmarks</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --panel: #1e293b;
-      --border: #334155;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --accent: #6366f1;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-      line-height: 1.5;
-    }
-    main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-    h1 { font-size: 1.9rem; margin: 0 0 0.25rem; }
-    h2 { margin: 2.5rem 0 0.75rem; font-size: 1.3rem; }
-    .muted { color: var(--muted); font-size: 0.9rem; }
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1rem 1.25rem;
-      margin-top: 0.75rem;
-      overflow-x: auto;
-    }
-    table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
-    th, td { text-align: left; padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
-    th { color: var(--muted); font-weight: 600; }
-    td.best { color: #34d399; font-weight: 700; }
-    select {
-      background: var(--panel); color: var(--text); border: 1px solid var(--border);
-      border-radius: 8px; padding: 0.4rem 0.6rem; font-size: 0.9rem; margin-right: 0.5rem;
-    }
-    .controls { margin: 1rem 0 0.5rem; }
-    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
-    .gallery figure { margin: 0; }
-    .gallery img { width: 100%; border-radius: 8px; border: 1px solid var(--border); background: #fff; }
-    .gallery figcaption { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
-    canvas { max-width: 100%; }
-    a { color: #818cf8; }
-    .pill {
-      display: inline-block; padding: 0.1rem 0.6rem; border-radius: 999px;
-      background: var(--accent); color: #fff; font-size: 0.75rem; font-weight: 700;
-      letter-spacing: 0.05em; vertical-align: middle;
-    }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>JavaScript Image Generation Benchmarks <span class="pill">FAIR</span></h1>
-    <p class="muted" id="meta">Loading results…</p>
-    <p>
-      Seven libraries rendering identical scenarios across Node.js, Bun, and Deno —
-      steady-state speed, cold-start cost, format support, and pixel-level output validation.
-      Methodology and source: <a id="repo-link" href="#">GitHub repository</a>.
-    </p>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>JavaScript Image Generation Benchmarks</title>
+		<style>
+			:root {
+				--bg: #0f172a;
+				--panel: #1e293b;
+				--border: #334155;
+				--text: #e2e8f0;
+				--muted: #94a3b8;
+				--accent: #6366f1;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				background: var(--bg);
+				color: var(--text);
+				font-family:
+					ui-sans-serif,
+					system-ui,
+					-apple-system,
+					"Segoe UI",
+					sans-serif;
+				line-height: 1.5;
+			}
+			main {
+				max-width: 1100px;
+				margin: 0 auto;
+				padding: 2rem 1.25rem 4rem;
+			}
+			h1 {
+				font-size: 1.9rem;
+				margin: 0 0 0.25rem;
+			}
+			h2 {
+				margin: 2.5rem 0 0.75rem;
+				font-size: 1.3rem;
+			}
+			.muted {
+				color: var(--muted);
+				font-size: 0.9rem;
+			}
+			.panel {
+				background: var(--panel);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 1rem 1.25rem;
+				margin-top: 0.75rem;
+				overflow-x: auto;
+			}
+			table {
+				border-collapse: collapse;
+				width: 100%;
+				font-size: 0.88rem;
+			}
+			th,
+			td {
+				text-align: left;
+				padding: 0.4rem 0.75rem;
+				border-bottom: 1px solid var(--border);
+				white-space: nowrap;
+			}
+			th {
+				color: var(--muted);
+				font-weight: 600;
+			}
+			td.best {
+				color: #34d399;
+				font-weight: 700;
+			}
+			select {
+				background: var(--panel);
+				color: var(--text);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 0.4rem 0.6rem;
+				font-size: 0.9rem;
+				margin-right: 0.5rem;
+			}
+			.controls {
+				margin: 1rem 0 0.5rem;
+			}
+			.gallery {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+				gap: 1rem;
+			}
+			.gallery figure {
+				margin: 0;
+			}
+			.gallery img {
+				width: 100%;
+				border-radius: 8px;
+				border: 1px solid var(--border);
+				background: #fff;
+			}
+			.gallery figcaption {
+				font-size: 0.8rem;
+				color: var(--muted);
+				margin-top: 0.3rem;
+			}
+			canvas {
+				max-width: 100%;
+			}
+			a {
+				color: #818cf8;
+			}
+			.pill {
+				display: inline-block;
+				padding: 0.1rem 0.6rem;
+				border-radius: 999px;
+				background: var(--accent);
+				color: #fff;
+				font-size: 0.75rem;
+				font-weight: 700;
+				letter-spacing: 0.05em;
+				vertical-align: middle;
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<h1>JavaScript Image Generation Benchmarks <span class="pill">FAIR</span></h1>
+			<p class="muted" id="meta">Loading results…</p>
+			<p>
+				Seven libraries rendering identical scenarios across Node.js, Bun, and Deno — steady-state
+				speed, cold-start cost, format support, and pixel-level output validation. Methodology and
+				source: <a id="repo-link" href="#">GitHub repository</a>.
+			</p>
 
-    <h2>Steady-state performance</h2>
-    <div class="controls">
-      <select id="scenario-select"></select>
-      <select id="format-select"></select>
-      <span class="muted">mean time per render+encode — lower is better</span>
-    </div>
-    <div class="panel"><canvas id="bench-chart" height="130"></canvas></div>
-    <div class="panel" id="bench-table"></div>
+			<h2>Steady-state performance</h2>
+			<div class="controls">
+				<select id="scenario-select"></select>
+				<select id="format-select"></select>
+				<span class="muted">mean time per render+encode — lower is better</span>
+			</div>
+			<div class="panel"><canvas id="bench-chart" height="130"></canvas></div>
+			<div class="panel" id="bench-table"></div>
 
-    <h2>Cold start / setup cost</h2>
-    <p class="muted">Module import + font registration + image decoding + first render, measured once per process. Relevant for serverless.</p>
-    <div class="controls"><select id="coldstart-runtime"></select></div>
-    <div class="panel"><canvas id="coldstart-chart" height="120"></canvas></div>
+			<h2>Cold start / setup cost</h2>
+			<p class="muted">
+				Module import + font registration + image decoding + first render, measured once per
+				process. Relevant for serverless.
+			</p>
+			<div class="controls"><select id="coldstart-runtime"></select></div>
+			<div class="panel"><canvas id="coldstart-chart" height="120"></canvas></div>
 
-    <h2>Library support</h2>
-    <div class="panel" id="support-table"></div>
+			<h2>Library support</h2>
+			<div class="panel" id="support-table"></div>
 
-    <h2>Output gallery</h2>
-    <p class="muted">What each library actually rendered for the selected scenario (PNG outputs from the primary Node.js run).</p>
-    <div class="gallery" id="gallery"></div>
+			<h2>Output gallery</h2>
+			<p class="muted">
+				What each library actually rendered for the selected scenario (PNG outputs from the primary
+				Node.js run).
+			</p>
+			<div class="gallery" id="gallery"></div>
 
-    <h2>Cross-library similarity</h2>
-    <p class="muted">
-      Pixel difference between libraries rendering the same scenario, within each paradigm group
-      (canvas-API vs declarative). Rasterizers legitimately differ in antialiasing and font
-      rendering — large values point at diverging feature support, visible in the diff images.
-    </p>
-    <div class="panel" id="similarity-table"></div>
-  </main>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="./app.js"></script>
-</body>
+			<h2>Cross-library similarity</h2>
+			<p class="muted">
+				Pixel difference between libraries rendering the same scenario, within each paradigm group
+				(canvas-API vs declarative). Rasterizers legitimately differ in antialiasing and font
+				rendering — large values point at diverging feature support, visible in the diff images.
+			</p>
+			<div class="panel" id="similarity-table"></div>
+		</main>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+		<script src="./app.js"></script>
+	</body>
 </html>
