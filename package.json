@@ -1,0 +1,44 @@
+{
+  "name": "image-generation-benchmarks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fair, reproducible benchmarks for JavaScript image generation libraries across runtimes, scenarios, and output formats.",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "trustedDependencies": [
+    "canvas",
+    "skia-canvas"
+  ],
+  "scripts": {
+    "bench": "node src/runner/bench.ts",
+    "bench:quick": "node src/runner/bench.ts --quick",
+    "validate": "node src/runner/validate.ts",
+    "report": "node src/runner/report.ts",
+    "compare": "node src/runner/compare.ts",
+    "assets:generate": "node scripts/generate-assets.ts",
+    "baselines:update": "node scripts/update-baselines.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "1.0.0",
+    "@resvg/resvg-js": "2.6.2",
+    "@resvg/resvg-wasm": "2.6.2",
+    "@takumi-rs/core": "1.8.4",
+    "@takumi-rs/helpers": "1.8.4",
+    "canvas": "3.2.3",
+    "canvaskit-wasm": "0.41.1",
+    "fast-png": "8.0.0",
+    "mitata": "1.0.34",
+    "pixelmatch": "7.2.0",
+    "pureimage": "0.4.18",
+    "satori": "0.26.0",
+    "skia-canvas": "3.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.3",
+    "@types/react": "19.2.17",
+    "typescript": "6.0.3"
+  }
+}

@@ -1,0 +1,62 @@
+name: PR Benchmark
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-bench-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    name: A/B benchmark (base vs head)
+    runs-on: ubuntu-latest
+    steps:
+      # Head (the PR merge commit) in the default path, base in ./base —
+      # both run on the same machine so the hardware is controlled and the
+      # diff reflects the code/dependency change.
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Typecheck
+        run: |
+          npm ci
+          npm run typecheck
+
+      - name: Bench head
+        run: node src/runner/bench.ts --quick --out /tmp/head.json
+
+      - name: Bench base
+        run: |
+          if [ -f base/src/runner/bench.ts ]; then
+            cd base
+            npm ci
+            node src/runner/bench.ts --quick --out /tmp/base.json
+          else
+            echo "base has no benchmark runner — reporting head-only numbers"
+          fi
+
+      - name: Validate head against baselines
+        run: node src/runner/validate.ts
+
+      - name: Build comparison comment
+        run: node src/runner/compare.ts /tmp/base.json /tmp/head.json --out /tmp/comment.md
+
+      - name: Post sticky PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: benchmark-comparison
+          path: /tmp/comment.md

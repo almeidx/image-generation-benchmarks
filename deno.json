@@ -1,0 +1,8 @@
+{
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "bench": "deno run -A src/runner/bench.ts",
+    "bench:quick": "deno run -A src/runner/bench.ts --quick",
+    "validate": "deno run -A src/runner/validate.ts"
+  }
+}

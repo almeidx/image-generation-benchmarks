@@ -1,0 +1,9 @@
+node_modules/
+results/
+site/public/data.json
+site/public/gallery/
+*.tsbuildinfo
+.wrangler/
+deno.lock
+bun.lock
+bun.lockb

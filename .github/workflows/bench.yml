@@ -1,0 +1,154 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: bench (${{ matrix.id }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: node-22, runtime: node, version: "22" }
+          - { id: node-24, runtime: node, version: "24" }
+          - { id: node-26, runtime: node, version: "26" }
+          - { id: bun, runtime: bun }
+          - { id: deno, runtime: deno }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: matrix.runtime == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.version }}
+          cache: npm
+
+      - name: Setup Bun
+        if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Deno
+        if: matrix.runtime == 'deno'
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies (npm)
+        if: matrix.runtime == 'node'
+        run: npm ci
+
+      - name: Install dependencies (bun)
+        if: matrix.runtime == 'bun'
+        run: bun install
+
+      - name: Install dependencies (deno)
+        if: matrix.runtime == 'deno'
+        run: deno install --allow-scripts
+
+      - name: Run benchmarks
+        run: |
+          case "${{ matrix.runtime }}" in
+            node) node src/runner/bench.ts ;;
+            bun)  bun src/runner/bench.ts ;;
+            deno) deno run -A src/runner/bench.ts ;;
+          esac
+
+      - name: Validate outputs against baselines
+        run: |
+          case "${{ matrix.runtime }}" in
+            node) node src/runner/validate.ts ;;
+            bun)  bun src/runner/validate.ts ;;
+            deno) deno run -A src/runner/validate.ts ;;
+          esac
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.id }}
+          path: results/
+          retention-days: 90
+
+  report:
+    name: report
+    needs: bench
+    if: always() && needs.bench.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Download all results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: results-*
+          path: results
+          merge-multiple: true
+
+      # report.ts only uses the standard library — no npm install needed.
+      - name: Build report and site data
+        run: node src/runner/report.ts --results results --out RESULTS.md
+
+      - name: Publish job summary
+        run: cat RESULTS.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: report
+          path: RESULTS.md
+
+      - name: Upload site
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: site/
+
+  deploy:
+    name: deploy site
+    needs: report
+    if: github.ref == 'refs/heads/main' && needs.report.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Cloudflare credentials
+        id: creds
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "CLOUDFLARE_API_TOKEN not configured — skipping deploy."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download site
+        if: steps.creds.outputs.available == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: site
+
+      - name: Setup Node.js
+        if: steps.creds.outputs.available == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Deploy to Cloudflare Workers
+        if: steps.creds.outputs.available == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 deploy --config site/wrangler.jsonc
