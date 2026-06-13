@@ -27,6 +27,28 @@
 			"groupName": "candidate libraries",
 			"labels": ["dependencies", "candidates"],
 			"schedule": ["before 6am on monday"]
+		},
+		{
+			"description": "Runtime version bumps get their own PR so the A/B benchmark comment attributes performance shifts to the runtime change",
+			"matchDepNames": ["node", "deno", "bun"],
+			"groupName": "runtimes"
+		},
+		{
+			"description": "Each bench matrix entry deliberately tracks one Node major line — adding a new major is a manual matrix edit, so never propose crossing one",
+			"matchDepNames": ["node"],
+			"matchUpdateTypes": ["major"],
+			"enabled": false
+		}
+	],
+	"customManagers": [
+		{
+			"customType": "regex",
+			"description": "Node versions in the bench matrix — hidden from the github-actions manager behind ${{ matrix.version }}",
+			"managerFilePatterns": ["/^\\.github/workflows/bench\\.yml$/"],
+			"matchStrings": ["id: node-\\d+, runtime: node, version: \"(?<currentValue>[^\"]+)\""],
+			"depNameTemplate": "node",
+			"datasourceTemplate": "node-version",
+			"versioningTemplate": "node"
 		}
 	]
 }
