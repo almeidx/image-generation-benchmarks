@@ -19,9 +19,9 @@ jobs:
       # Head (the PR merge commit) in the default path, base in ./base —
       # both run on the same machine so the hardware is controlled and the
       # diff reflects the code/dependency change.
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
 
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
