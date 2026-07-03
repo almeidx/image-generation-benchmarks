@@ -45,7 +45,7 @@ jobs:
         if: matrix.runtime == 'deno'
         uses: denoland/setup-deno@v2.0.4
         with:
-          deno-version: 2.9.0
+          deno-version: 2.9.1
 
       - name: Install dependencies (pnpm)
         if: matrix.runtime == 'node'
