@@ -70,7 +70,7 @@ jobs:
         run: node src/runner/compare.ts /tmp/base.json /tmp/head.json --out /tmp/comment.md
 
       - name: Post sticky PR comment
-        uses: marocchino/sticky-pull-request-comment@v3.0.4
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
         with:
           header: benchmark-comparison
           path: /tmp/comment.md
