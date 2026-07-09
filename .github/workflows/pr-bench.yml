@@ -66,8 +66,14 @@ jobs:
       - name: Validate head against baselines
         run: node src/runner/validate.ts
 
+      # --baseline is the committed reference (baselines/perf.json), regenerated
+      # by the perf-baseline workflow. Absent until first generated, in which
+      # case compare.ts simply omits the drift section.
       - name: Build comparison comment
-        run: node src/runner/compare.ts /tmp/base.json /tmp/head.json --out /tmp/comment.md
+        run: |
+          node src/runner/compare.ts /tmp/base.json /tmp/head.json \
+            --out /tmp/comment.md \
+            ${{ hashFiles('baselines/perf.json') != '' && '--baseline baselines/perf.json' || '' }}
 
       - name: Post sticky PR comment
         uses: marocchino/sticky-pull-request-comment@v3.0.5

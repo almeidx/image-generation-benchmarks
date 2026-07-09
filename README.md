@@ -63,7 +63,8 @@ Two layers, by design:
 1. **Per-library baselines (CI-failing).** Each library's PNG output is compared
    (pixelmatch) against its own committed baseline in `baselines/`. A dependency bump that
    changes rendering fails CI until the baseline is regenerated and the change reviewed.
-   Threshold: 0.5% of pixels.
+   Threshold: 0.5% of pixels. To regenerate without a local linux+node setup, add the
+   `regenerate-baselines` label to the PR (see CI below).
 2. **Cross-library similarity (report-only).** Pairwise pixel diffs within each paradigm group.
    Rasterizers legitimately differ in antialiasing and font rendering, so this never fails CI —
    but a large divergence (like pureimage's radial-gradient limitation) is surfaced in the
@@ -94,14 +95,40 @@ Useful flags: `--adapters napi-rs-canvas,takumi`, `--scenarios og-card`, `--out 
 
 ## CI
 
-- **`bench.yml`** (push to main / manual): matrix over Node 22/24/26, Bun, and Deno on
-  ubuntu-latest. Each job benchmarks, validates against baselines, and uploads artifacts; a
+- **`bench.yml`** (push to main / manual / **weekly**): matrix over Node 22/24/26, Bun, and Deno
+  on ubuntu-latest. Each job benchmarks, validates against baselines, and uploads artifacts; a
   report job aggregates everything into `RESULTS.md` (also the job summary) and site data; a
   deploy job publishes the dashboard to Cloudflare Workers (when `CLOUDFLARE_API_TOKEN` /
-  `CLOUDFLARE_ACCOUNT_ID` secrets are configured).
+  `CLOUDFLARE_ACCOUNT_ID` secrets are configured). The weekly schedule keeps the published
+  dashboard fresh even with no merges to main.
 - **`pr-bench.yml`** (pull requests): benchmarks base and head on the same runner (quick mode)
-  and posts a sticky comment with the diff — changes beyond ±15% are flagged 🚀/⚠️, library
-  version bumps and support changes are called out. The comment updates in place on each push.
+  and posts a sticky comment with the diff. Two signals, kept separate:
+  - **This PR (base → head, same runner).** Isolates the effect of the change. Quick-mode
+    numbers are noisy, so the delta is computed on the **median** and only flagged 🚀/⚠️ when it
+    clears both ±15% _and_ the benchmarks' own measured jitter — so unrelated PRs (dependency
+    bumps that don't touch rendering) stop surfacing phantom regressions. Library version bumps
+    and support changes are called out.
+  - **Drift vs committed baseline** (advisory). Same-runner A/B only ever compares against the
+    PR's immediate parent, so a small regression that merges becomes the new reference and hides;
+    over many merges that drift compounds invisibly. Head is therefore also compared against
+    `baselines/perf.json`, a fixed reference that only moves when it's deliberately re-blessed.
+    Cross-run, so it uses a wider ±25% band. Omitted until the baseline is first generated.
+
+  The comment updates in place on each push.
+
+- **`perf-baseline.yml`** (manual `workflow_dispatch`, or **monthly**): regenerates
+  `baselines/perf.json` on a GitHub-hosted `ubuntu-latest` runner — the same hardware class the PR
+  job compares against, so it can't be produced from a faster local machine — and opens a
+  reviewable PR. Re-bless it when a performance shift is real and understood, exactly like
+  regenerating the pixel baselines. The monthly schedule is a safety net so the drift reference
+  never silently goes stale; the PR is never merged unreviewed.
+- **`regenerate-baselines.yml`** (add the **`regenerate-baselines` label** to a PR): the one
+  manual step that used to block self-running. When a PR changes rendering, `validate` fails and
+  the pixel baselines have to be regenerated on linux + node. Label the PR and this regenerates
+  the pixel baselines _and_ refreshes `baselines/perf.json` on the runner, pushes them to the PR
+  branch, and comments with exactly which renders changed (diff images uploaded as the
+  `baseline-diffs` artifact). You review the rendering diff and merge — nothing to hand-crank.
+  Same-repo branches only (a fork's token can't push back).
 
 ## Adding a library or scenario
 

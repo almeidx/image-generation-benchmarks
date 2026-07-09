@@ -4,6 +4,7 @@
 	"labels": ["dependencies"],
 	"minimumReleaseAge": "1 day",
 	"rangeStrategy": "pin",
+	"rebaseWhen": "conflicted",
 	"packageRules": [
 		{
 			"description": "Everything that is not a benchmark candidate (harness, types, tooling)",

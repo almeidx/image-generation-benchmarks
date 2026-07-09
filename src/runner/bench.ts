@@ -9,55 +9,64 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import { parseArgs } from "node:util";
 import { bench, run } from "mitata";
 import type { BenchEntry, BenchResultFile, BenchStats } from "../types.ts";
 import { formatExtensions, resultsDir } from "../utils/assets.ts";
 import { detectRuntime, runtimeId } from "../utils/runtime.ts";
 import { comboKey, prepare, renderOptions, type Combo } from "./prepare.ts";
 
-function parseArgs(argv: string[]): {
-	quick: boolean;
-	adapters?: string[];
-	scenarios?: string[];
-	out?: string;
-} {
-	const opts: ReturnType<typeof parseArgs> = { quick: false };
-	for (let i = 0; i < argv.length; i++) {
-		const arg = argv[i];
-		if (arg === "--quick") opts.quick = true;
-		else if (arg === "--adapters") opts.adapters = argv[++i]?.split(",");
-		else if (arg === "--scenarios") opts.scenarios = argv[++i]?.split(",");
-		else if (arg === "--out") opts.out = argv[i + 1] ? argv[++i] : undefined;
-	}
-	return opts;
-}
+/** Quick-mode defaults. More samples than a smoke test needs, because the PR
+ * A/B comment compares medians and gates on measured noise — a steadier
+ * estimate directly reduces false "regressions" on unrelated PRs. The
+ * perf-baseline workflow overrides these upward for an even stabler reference. */
+const QUICK_WARMUP = 5;
+const QUICK_SAMPLES = 30;
 
-async function quickStats(combo: Combo): Promise<BenchStats> {
-	const WARMUP = 2;
-	const SAMPLES = 10;
+async function quickStats(combo: Combo, samples: number, warmup: number): Promise<BenchStats> {
+	const WARMUP = warmup;
+	const SAMPLES = samples;
 	for (let i = 0; i < WARMUP; i++) {
 		await combo.adapter.render(combo.scenario, combo.format, renderOptions);
 	}
-	const samples: number[] = [];
+	const samplesNs: number[] = [];
 	for (let i = 0; i < SAMPLES; i++) {
 		const t0 = performance.now();
 		await combo.adapter.render(combo.scenario, combo.format, renderOptions);
-		samples.push((performance.now() - t0) * 1e6);
+		samplesNs.push((performance.now() - t0) * 1e6);
 	}
-	samples.sort((a, b) => a - b);
-	const at = (q: number) => samples[Math.floor(q * (samples.length - 1))] as number;
+	samplesNs.sort((a, b) => a - b);
+	const at = (q: number) => samplesNs[Math.floor(q * (samplesNs.length - 1))] as number;
 	return {
-		avgNs: samples.reduce((a, v) => a + v, 0) / samples.length,
-		minNs: samples[0] as number,
-		maxNs: samples[samples.length - 1] as number,
+		avgNs: samplesNs.reduce((a, v) => a + v, 0) / samplesNs.length,
+		minNs: samplesNs[0] as number,
+		maxNs: samplesNs[samplesNs.length - 1] as number,
 		p50Ns: at(0.5),
 		p75Ns: at(0.75),
 		p99Ns: at(0.99),
-		samples: samples.length,
+		samples: samplesNs.length,
 	};
 }
 
-const opts = parseArgs(process.argv.slice(2));
+const { values } = parseArgs({
+	args: process.argv.slice(2),
+	options: {
+		quick: { type: "boolean", default: false },
+		adapters: { type: "string" },
+		scenarios: { type: "string" },
+		out: { type: "string" },
+		samples: { type: "string" },
+		warmup: { type: "string" },
+	},
+});
+const opts = {
+	quick: values.quick,
+	adapters: values.adapters?.split(","),
+	scenarios: values.scenarios?.split(","),
+	out: values.out,
+	samples: values.samples === undefined ? undefined : Number(values.samples),
+	warmup: values.warmup === undefined ? undefined : Number(values.warmup),
+};
 const runtime = detectRuntime();
 const id = runtimeId(runtime);
 console.log(`runtime: ${id}${opts.quick ? " (quick mode)" : ""}`);
@@ -86,8 +95,22 @@ console.log(`${prepared.combos.length} combinations across ${prepared.ready.leng
 const entries: BenchEntry[] = [];
 
 if (opts.quick) {
+	const samples = opts.samples ?? QUICK_SAMPLES;
+	const warmup = opts.warmup ?? QUICK_WARMUP;
+	// Guard the counts before the sampling loop: a bad --samples/--warmup (empty,
+	// non-numeric, negative, fractional) would otherwise silently yield an empty
+	// sample array and NaN stats — and these are user inputs on perf-baseline.yml.
+	if (!Number.isInteger(samples) || samples < 1) {
+		console.error(`--samples must be a positive integer (got ${JSON.stringify(values.samples)})`);
+		process.exit(1);
+	}
+	if (!Number.isInteger(warmup) || warmup < 0) {
+		console.error(`--warmup must be a non-negative integer (got ${JSON.stringify(values.warmup)})`);
+		process.exit(1);
+	}
+	console.log(`quick mode: ${warmup} warmup + ${samples} samples per combination`);
 	for (const combo of prepared.combos) {
-		const stats = await quickStats(combo);
+		const stats = await quickStats(combo, samples, warmup);
 		entries.push({
 			adapter: combo.adapter.name,
 			scenario: combo.scenario.name,
