@@ -100,8 +100,24 @@ Useful flags: `--adapters napi-rs-canvas,takumi`, `--scenarios og-card`, `--out 
   deploy job publishes the dashboard to Cloudflare Workers (when `CLOUDFLARE_API_TOKEN` /
   `CLOUDFLARE_ACCOUNT_ID` secrets are configured).
 - **`pr-bench.yml`** (pull requests): benchmarks base and head on the same runner (quick mode)
-  and posts a sticky comment with the diff — changes beyond ±15% are flagged 🚀/⚠️, library
-  version bumps and support changes are called out. The comment updates in place on each push.
+  and posts a sticky comment with the diff. Two signals, kept separate:
+  - **This PR (base → head, same runner).** Isolates the effect of the change. Quick-mode
+    numbers are noisy, so the delta is computed on the **median** and only flagged 🚀/⚠️ when it
+    clears both ±15% _and_ the benchmarks' own measured jitter — so unrelated PRs (dependency
+    bumps that don't touch rendering) stop surfacing phantom regressions. Library version bumps
+    and support changes are called out.
+  - **Drift vs committed baseline** (advisory). Same-runner A/B only ever compares against the
+    PR's immediate parent, so a small regression that merges becomes the new reference and hides;
+    over many merges that drift compounds invisibly. Head is therefore also compared against
+    `baselines/perf.json`, a fixed reference that only moves when it's deliberately re-blessed.
+    Cross-run, so it uses a wider ±25% band. Omitted until the baseline is first generated.
+
+  The comment updates in place on each push.
+
+- **`perf-baseline.yml`** (manual `workflow_dispatch`): regenerates `baselines/perf.json` on a
+  GitHub-hosted `ubuntu-latest` runner — the same hardware class the PR job compares against, so
+  it can't be produced from a faster local machine — and opens a reviewable PR. Re-bless it when a
+  performance shift is real and understood, exactly like regenerating the pixel baselines.
 
 ## Adding a library or scenario
 

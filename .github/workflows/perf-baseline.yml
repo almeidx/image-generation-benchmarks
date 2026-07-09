@@ -1,0 +1,72 @@
+name: Update performance baseline
+
+# Regenerates baselines/perf.json — the fixed reference the PR benchmark comment
+# measures drift against. It MUST run here, on a GitHub-hosted ubuntu-latest
+# runner, so the numbers match the hardware class the PR A/B runs on; a baseline
+# captured on faster local hardware would read as a huge regression on every PR.
+#
+# Manually dispatched (deliberate, like regenerating the pixel baselines) and
+# lands as a reviewable PR rather than a direct push, so the reference numbers
+# get a human gate before they become the thing everything else is judged by.
+
+on:
+  workflow_dispatch:
+    inputs:
+      samples:
+        description: "Timed samples per benchmark (higher = steadier reference)"
+        required: false
+        default: "100"
+      warmup:
+        description: "Warmup iterations discarded before timing"
+        required: false
+        default: "10"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  baseline:
+    name: Measure and open PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - uses: pnpm/action-setup@v6.0.9
+
+      # Same Node version the PR benchmark job uses, so the committed baseline
+      # and the head numbers it's compared against are measured identically.
+      - uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "24.18.0"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Measure baseline
+        run: |
+          node src/runner/bench.ts --quick \
+            --samples "${{ inputs.samples }}" \
+            --warmup "${{ inputs.warmup }}" \
+            --out baselines/perf.json
+
+      - name: Open baseline PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: baselines/perf.json
+          branch: chore/perf-baseline
+          delete-branch: true
+          commit-message: "chore: regenerate performance baseline"
+          title: "chore: regenerate performance baseline"
+          labels: performance
+          body: |
+            Regenerated `baselines/perf.json` on a GitHub-hosted `ubuntu-latest`
+            runner (Node 24.18.0, quick mode, ${{ inputs.samples }} samples) so it
+            matches the hardware class the PR benchmark comment compares against.
+
+            This file is the **fixed reference** the PR drift check measures head
+            against — it only moves when this workflow re-blesses it. Review the
+            median changes vs the previous baseline before merging, and merge only
+            when the shift is understood: a real, intended performance change, a
+            new library/scenario, or the runner hardware itself moving.
