@@ -20,6 +20,10 @@ on:
         description: "Warmup iterations discarded before timing"
         required: false
         default: "10"
+  # Monthly safety net so the drift reference never silently goes stale. Opens a
+  # PR you review and merge — never lands unreviewed.
+  schedule:
+    - cron: "0 6 1 * *" # 1st of each month, 06:00 UTC
 
 permissions:
   contents: write
@@ -44,11 +48,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # inputs.* are empty on the scheduled run, so fall back to the defaults.
       - name: Measure baseline
         run: |
           node src/runner/bench.ts --quick \
-            --samples "${{ inputs.samples }}" \
-            --warmup "${{ inputs.warmup }}" \
+            --samples "${{ inputs.samples || '100' }}" \
+            --warmup "${{ inputs.warmup || '10' }}" \
             --out baselines/perf.json
 
       - name: Open baseline PR
@@ -62,8 +67,8 @@ jobs:
           labels: performance
           body: |
             Regenerated `baselines/perf.json` on a GitHub-hosted `ubuntu-latest`
-            runner (Node 24.18.0, quick mode, ${{ inputs.samples }} samples) so it
-            matches the hardware class the PR benchmark comment compares against.
+            runner (Node 24.18.0, quick mode, ${{ inputs.samples || '100' }} samples)
+            so it matches the hardware class the PR benchmark comment compares against.
 
             This file is the **fixed reference** the PR drift check measures head
             against — it only moves when this workflow re-blesses it. Review the

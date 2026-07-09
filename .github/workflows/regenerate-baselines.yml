@@ -1,0 +1,96 @@
+name: Regenerate baselines
+
+# Removes the one manual step between this repo and running itself: when a PR
+# changes rendering, `validate` fails and someone has to regenerate the pixel
+# baselines on linux + node and commit them. Add the `regenerate-baselines`
+# label to a PR and this does exactly that on the runner — regenerates the pixel
+# baselines *and* refreshes baselines/perf.json, pushes them to the PR branch,
+# and comments with what changed — so you review the rendering diff and merge,
+# nothing to hand-crank. You stay the gate; this only does the mechanical work.
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: regen-baselines-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  regenerate:
+    name: Regenerate and push
+    # Only for the trigger label, and only for same-repo branches (a read-only
+    # fork token can't push back, and we won't run untrusted code with write).
+    if: >-
+      github.event.label.name == 'regenerate-baselines' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6.0.9
+
+      # Same Node the PR benchmark + validation jobs use, so regenerated
+      # baselines match what CI will render them against.
+      - uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "24.18.0"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Validate the PR head against the CURRENT committed baselines first, so
+      # the diff images and the "what changed" summary reflect the real
+      # rendering change — before we overwrite the baselines below.
+      - name: Validate against current baselines
+        run: pnpm validate || true
+
+      - name: Summarize rendering changes
+        run: node scripts/render-change-summary.ts --out /tmp/regen-comment.md
+
+      - name: Regenerate pixel baselines
+        run: pnpm baselines:update
+
+      - name: Refresh performance baseline
+        run: node src/runner/bench.ts --quick --samples 100 --warmup 10 --out baselines/perf.json
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add baselines
+          if git diff --cached --quiet; then
+            echo "No baseline changes to commit."
+          else
+            git commit -m "chore: regenerate baselines"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
+
+      - name: Upload diff images
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: baseline-diffs
+          path: results/diffs
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Comment with what changed
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        with:
+          header: baseline-regeneration
+          path: /tmp/regen-comment.md
+
+      # Remove the label so it can be re-added to trigger another regeneration.
+      - name: Clear trigger label
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr edit "${{ github.event.pull_request.number }}" --remove-label regenerate-baselines
