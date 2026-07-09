@@ -50,9 +50,22 @@ if (!headPath) {
 }
 
 async function load(file: string): Promise<BenchResultFile | undefined> {
+	let text: string;
 	try {
-		return JSON.parse(await readFile(file, "utf8")) as BenchResultFile;
-	} catch {
+		text = await readFile(file, "utf8");
+	} catch (err) {
+		// A missing file is an expected path — pr-bench.yml runs head-only when the
+		// base commit predates the runner. Anything other than "not found" (a
+		// corrupt or unreadable file) is a real problem worth surfacing.
+		if ((err as { code?: string }).code !== "ENOENT") {
+			console.error(`warning: could not read ${file}: ${err}`);
+		}
+		return undefined;
+	}
+	try {
+		return JSON.parse(text) as BenchResultFile;
+	} catch (err) {
+		console.error(`warning: could not parse ${file}: ${err}`);
 		return undefined;
 	}
 }
@@ -125,7 +138,9 @@ if (!base) {
 	const rows: Row[] = [];
 	for (const b of head.benchmarks) {
 		const baseRow = baseMap.get(key(b));
-		if (!baseRow) continue;
+		// Skip degenerate medians — a non-positive denominator makes the ratio
+		// non-finite and poisons formatting/sorting/filtering downstream.
+		if (!baseRow || baseRow.stats.p50Ns <= 0) continue;
 		rows.push({
 			name: name(b),
 			baseNs: baseRow.stats.p50Ns,
@@ -200,7 +215,8 @@ if (baseline) {
 	const drifts: Drift[] = [];
 	for (const b of head.benchmarks) {
 		const ref = baselineMap.get(key(b));
-		if (!ref) continue;
+		// Skip a non-positive baseline median: the ratio would be non-finite.
+		if (!ref || ref.stats.p50Ns <= 0) continue;
 		const delta = (b.stats.p50Ns - ref.stats.p50Ns) / ref.stats.p50Ns;
 		if (Math.abs(delta) >= DRIFT_THRESHOLD) {
 			drifts.push({ name: name(b), refNs: ref.stats.p50Ns, headNs: b.stats.p50Ns, delta });

@@ -97,6 +97,17 @@ const entries: BenchEntry[] = [];
 if (opts.quick) {
 	const samples = opts.samples ?? QUICK_SAMPLES;
 	const warmup = opts.warmup ?? QUICK_WARMUP;
+	// Guard the counts before the sampling loop: a bad --samples/--warmup (empty,
+	// non-numeric, negative, fractional) would otherwise silently yield an empty
+	// sample array and NaN stats — and these are user inputs on perf-baseline.yml.
+	if (!Number.isInteger(samples) || samples < 1) {
+		console.error(`--samples must be a positive integer (got ${JSON.stringify(values.samples)})`);
+		process.exit(1);
+	}
+	if (!Number.isInteger(warmup) || warmup < 0) {
+		console.error(`--warmup must be a non-negative integer (got ${JSON.stringify(values.warmup)})`);
+		process.exit(1);
+	}
 	console.log(`quick mode: ${warmup} warmup + ${samples} samples per combination`);
 	for (const combo of prepared.combos) {
 		const stats = await quickStats(combo, samples, warmup);
