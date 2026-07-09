@@ -21,6 +21,7 @@
  *      is advisory only.
  */
 import { readFile, writeFile } from "node:fs/promises";
+import { parseArgs } from "node:util";
 import type { BenchResultFile, BenchStats } from "../types.ts";
 
 /** base→head: minimum relative change worth flagging at all. */
@@ -29,11 +30,17 @@ const FLAG_THRESHOLD = 0.15;
  * different runners at different times (cross-run hardware weather). */
 const DRIFT_THRESHOLD = 0.25;
 
-const [basePath, headPath] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
-const outIdx = process.argv.indexOf("--out");
-const outPath = outIdx >= 0 ? process.argv[outIdx + 1] : undefined;
-const baselineIdx = process.argv.indexOf("--baseline");
-const baselinePath = baselineIdx >= 0 ? process.argv[baselineIdx + 1] : undefined;
+const { values, positionals } = parseArgs({
+	args: process.argv.slice(2),
+	allowPositionals: true,
+	options: {
+		out: { type: "string" },
+		baseline: { type: "string" },
+	},
+});
+const [basePath, headPath] = positionals;
+const outPath = values.out;
+const baselinePath = values.baseline;
 
 if (!headPath) {
 	console.error(

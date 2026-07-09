@@ -8,16 +8,19 @@
  */
 import { cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { parseArgs } from "node:util";
 import type { BenchResultFile, OutputFormat, ValidationResultFile } from "../types.ts";
 import { repoRoot, resultsDir } from "../utils/assets.ts";
 
-const argv = process.argv.slice(2);
-function argValue(flag: string, fallback: string): string {
-	const i = argv.indexOf(flag);
-	return i >= 0 && argv[i + 1] ? (argv[i + 1] as string) : fallback;
-}
-const inputDir = path.resolve(argValue("--results", resultsDir));
-const outPath = path.resolve(argValue("--out", path.join(inputDir, "RESULTS.md")));
+const { values: cliArgs } = parseArgs({
+	args: process.argv.slice(2),
+	options: {
+		results: { type: "string" },
+		out: { type: "string" },
+	},
+});
+const inputDir = path.resolve(cliArgs.results ?? resultsDir);
+const outPath = path.resolve(cliArgs.out ?? path.join(inputDir, "RESULTS.md"));
 
 async function collectFiles(dir: string, predicate: (name: string) => boolean): Promise<string[]> {
 	const found: string[] = [];

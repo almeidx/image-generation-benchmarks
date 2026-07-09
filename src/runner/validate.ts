@@ -12,6 +12,7 @@
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { parseArgs } from "node:util";
 // fast-png is pure JS (no node:zlib sync internals), so validation runs
 // identically on Node, Bun, and Deno.
 import { decode as decodePng, encode as encodePng } from "fast-png";
@@ -26,10 +27,13 @@ const BASELINE_THRESHOLD = 0.005;
 /** Per-pixel color distance threshold for pixelmatch (0..1). */
 const PIXEL_THRESHOLD = 0.1;
 
-function parseList(flag: string): string[] | undefined {
-	const i = process.argv.indexOf(flag);
-	return i >= 0 ? process.argv[i + 1]?.split(",") : undefined;
-}
+const { values: cliArgs } = parseArgs({
+	args: process.argv.slice(2),
+	options: {
+		adapters: { type: "string" },
+		scenarios: { type: "string" },
+	},
+});
 
 interface Rgba {
 	width: number;
@@ -88,8 +92,8 @@ const id = runtimeId(runtime);
 const diffsDir = path.join(resultsDir, "diffs", id);
 
 const prepared = await prepare({
-	adapters: parseList("--adapters"),
-	scenarios: parseList("--scenarios"),
+	adapters: cliArgs.adapters?.split(","),
+	scenarios: cliArgs.scenarios?.split(","),
 	formats: ["png"],
 });
 

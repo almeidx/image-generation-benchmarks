@@ -9,6 +9,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import { parseArgs } from "node:util";
 import { bench, run } from "mitata";
 import type { BenchEntry, BenchResultFile, BenchStats } from "../types.ts";
 import { formatExtensions, resultsDir } from "../utils/assets.ts";
@@ -21,27 +22,6 @@ import { comboKey, prepare, renderOptions, type Combo } from "./prepare.ts";
  * perf-baseline workflow overrides these upward for an even stabler reference. */
 const QUICK_WARMUP = 5;
 const QUICK_SAMPLES = 30;
-
-function parseArgs(argv: string[]): {
-	quick: boolean;
-	adapters?: string[];
-	scenarios?: string[];
-	out?: string;
-	samples?: number;
-	warmup?: number;
-} {
-	const opts: ReturnType<typeof parseArgs> = { quick: false };
-	for (let i = 0; i < argv.length; i++) {
-		const arg = argv[i];
-		if (arg === "--quick") opts.quick = true;
-		else if (arg === "--adapters") opts.adapters = argv[++i]?.split(",");
-		else if (arg === "--scenarios") opts.scenarios = argv[++i]?.split(",");
-		else if (arg === "--out") opts.out = argv[i + 1] ? argv[++i] : undefined;
-		else if (arg === "--samples") opts.samples = Number(argv[++i]);
-		else if (arg === "--warmup") opts.warmup = Number(argv[++i]);
-	}
-	return opts;
-}
 
 async function quickStats(combo: Combo, samples: number, warmup: number): Promise<BenchStats> {
 	const WARMUP = warmup;
@@ -68,7 +48,25 @@ async function quickStats(combo: Combo, samples: number, warmup: number): Promis
 	};
 }
 
-const opts = parseArgs(process.argv.slice(2));
+const { values } = parseArgs({
+	args: process.argv.slice(2),
+	options: {
+		quick: { type: "boolean", default: false },
+		adapters: { type: "string" },
+		scenarios: { type: "string" },
+		out: { type: "string" },
+		samples: { type: "string" },
+		warmup: { type: "string" },
+	},
+});
+const opts = {
+	quick: values.quick,
+	adapters: values.adapters?.split(","),
+	scenarios: values.scenarios?.split(","),
+	out: values.out,
+	samples: values.samples === undefined ? undefined : Number(values.samples),
+	warmup: values.warmup === undefined ? undefined : Number(values.warmup),
+};
 const runtime = detectRuntime();
 const id = runtimeId(runtime);
 console.log(`runtime: ${id}${opts.quick ? " (quick mode)" : ""}`);

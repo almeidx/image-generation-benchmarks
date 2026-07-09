@@ -10,11 +10,15 @@
  */
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { parseArgs } from "node:util";
 import type { ValidationResultFile } from "../src/types.ts";
 import { resultsDir } from "../src/utils/assets.ts";
 
-const outIdx = process.argv.indexOf("--out");
-const outPath = outIdx >= 0 ? process.argv[outIdx + 1] : undefined;
+const { values } = parseArgs({
+	args: process.argv.slice(2),
+	options: { out: { type: "string" } },
+});
+const outPath = values.out;
 
 async function collectValidationFiles(dir: string): Promise<ValidationResultFile[]> {
 	let entries;
