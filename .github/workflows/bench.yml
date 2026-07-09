@@ -18,7 +18,7 @@ jobs:
         include:
           - { id: node-22, runtime: node, version: "22.23.1" }
           - { id: node-24, runtime: node, version: "24.18.0" }
-          - { id: node-26, runtime: node, version: "26.4.0" }
+          - { id: node-26, runtime: node, version: "26.5.0" }
           - { id: bun, runtime: bun }
           - { id: deno, runtime: deno }
     steps:
