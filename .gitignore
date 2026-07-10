@@ -7,3 +7,4 @@ site/public/gallery/
 deno.lock
 bun.lock
 bun.lockb
+.DS_Store
