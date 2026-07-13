@@ -19,16 +19,17 @@ interface Renderer {
 			format: string;
 			quality?: number;
 			stylesheets?: string[];
-			images?: { src: string; data: Uint8Array }[];
+			images?: ImageSource[];
 		},
 	): Promise<Buffer>;
 }
 type FromJsx = (element: unknown) => Promise<{ node: unknown; stylesheets: string[] }>;
+type ImageSource = { src: string; data: Uint8Array };
 
 let renderer: Renderer | undefined;
 let fromJsx: FromJsx | undefined;
 let elementAssets: ElementAssets | undefined;
-let images: { src: string; data: Uint8Array }[] | undefined;
+let scenarioImages: Record<string, ImageSource[]> | undefined;
 
 export const takumiAdapter: Adapter = {
 	name: "takumi",
@@ -46,10 +47,12 @@ export const takumiAdapter: Adapter = {
 		await renderer.registerFont({ data: assets.fonts.sansRegular.data, weight: 400 });
 		await renderer.registerFont({ data: assets.fonts.sansBold.data, weight: 700 });
 		const t2 = performance.now();
-		images = [
-			{ src: "bench://photo", data: assets.images.photo.data },
-			{ src: "bench://avatar", data: assets.images.avatar.data },
-		];
+		const photo = { src: "bench://photo", data: assets.images.photo.data };
+		const avatar = { src: "bench://avatar", data: assets.images.avatar.data };
+		scenarioImages = {
+			"image-compositing": [photo, avatar],
+			"og-card": [avatar],
+		};
 		elementAssets = { photoSrc: "bench://photo", avatarSrc: "bench://avatar" };
 		const t3 = performance.now();
 		return { importMs: t1 - t0, fontsMs: t2 - t1, assetsMs: t3 - t2 };
@@ -69,7 +72,7 @@ export const takumiAdapter: Adapter = {
 			format,
 			quality: options.quality,
 			stylesheets,
-			images,
+			images: scenarioImages![scenario.name],
 		});
 		return Uint8Array.from(buf);
 	},
