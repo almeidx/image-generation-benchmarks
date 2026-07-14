@@ -56,6 +56,9 @@ jobs:
             --warmup "${{ inputs.warmup || '10' }}" \
             --out baselines/perf.json
 
+      - name: Format baseline
+        run: pnpm exec oxfmt baselines/perf.json
+
       - name: Open baseline PR
         uses: peter-evans/create-pull-request@v8.1.1
         with:
@@ -63,6 +66,9 @@ jobs:
           branch: chore/perf-baseline
           delete-branch: true
           commit-message: "chore: regenerate performance baseline"
+          # With the default GITHUB_TOKEN this creates a verified commit authored
+          # and committed by github-actions[bot], regardless of who dispatched it.
+          sign-commits: true
           title: "chore: regenerate performance baseline"
           labels: performance
           body: |
