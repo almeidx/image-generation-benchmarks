@@ -34,7 +34,7 @@ jobs:
     name: Measure and open PR
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
 
       - uses: pnpm/action-setup@v6.0.9
 
