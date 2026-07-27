@@ -5,6 +5,8 @@
 	"minimumReleaseAge": "1 day",
 	"rangeStrategy": "pin",
 	"rebaseWhen": "conflicted",
+	"schedule": ["* 0-8 * * 6"],
+	"timezone": "Europe/Lisbon",
 	"packageRules": [
 		{
 			"description": "Everything that is not a benchmark candidate (harness, types, tooling)",
@@ -27,7 +29,7 @@
 			],
 			"groupName": "candidate libraries",
 			"labels": ["dependencies", "candidates"],
-			"schedule": ["before 6am on monday"]
+			"schedule": ["* 0-8 * * 6"]
 		},
 		{
 			"description": "Runtime version bumps get their own PR so the A/B benchmark comment attributes performance shifts to the runtime change",
