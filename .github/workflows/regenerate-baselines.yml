@@ -35,7 +35,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v6.0.9
+      - uses: pnpm/action-setup@v6.0.10
 
       # Same Node the PR benchmark + validation jobs use, so regenerated
       # baselines match what CI will render them against.
