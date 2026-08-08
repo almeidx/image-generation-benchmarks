@@ -29,7 +29,7 @@ jobs:
 
       - name: Setup pnpm
         if: matrix.runtime == 'node'
-        uses: pnpm/action-setup@v6.0.9
+        uses: pnpm/action-setup@v6.0.10
 
       - name: Setup Node.js
         if: matrix.runtime == 'node'
@@ -155,7 +155,7 @@ jobs:
 
       - name: Setup pnpm
         if: steps.creds.outputs.available == 'true'
-        uses: pnpm/action-setup@v6.0.9
+        uses: pnpm/action-setup@v6.0.10
 
       - name: Setup Node.js
         if: steps.creds.outputs.available == 'true'
