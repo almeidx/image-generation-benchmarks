@@ -19,11 +19,11 @@
 		"fmt:check": "oxfmt --check"
 	},
 	"dependencies": {
-		"@napi-rs/canvas": "1.0.8",
+		"@napi-rs/canvas": "1.0.9",
 		"@resvg/resvg-js": "2.6.2",
 		"@resvg/resvg-wasm": "2.6.2",
-		"@takumi-rs/core": "2.13.5",
-		"@takumi-rs/helpers": "2.13.5",
+		"@takumi-rs/core": "2.13.7",
+		"@takumi-rs/helpers": "2.13.7",
 		"canvas": "3.2.3",
 		"canvaskit-wasm": "0.42.0",
 		"fast-png": "8.0.0",
