@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v6.0.10
+      - uses: pnpm/action-setup@v6.1.0
 
       # Same Node version the PR benchmark job uses, so the committed baseline
       # and the head numbers it's compared against are measured identically.
