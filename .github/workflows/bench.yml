@@ -20,8 +20,8 @@ jobs:
       matrix:
         include:
           - { id: node-22, runtime: node, version: "22.23.2" }
-          - { id: node-24, runtime: node, version: "24.20.0" }
-          - { id: node-26, runtime: node, version: "26.8.1" }
+          - { id: node-24, runtime: node, version: "24.21.0" }
+          - { id: node-26, runtime: node, version: "26.8.2" }
           - { id: bun, runtime: bun }
           - { id: deno, runtime: deno }
     steps:
@@ -42,7 +42,7 @@ jobs:
         if: matrix.runtime == 'bun'
         uses: oven-sh/setup-bun@v2.2.0
         with:
-          bun-version: 1.4.0
+          bun-version: 1.4.2
 
       - name: Setup Deno
         if: matrix.runtime == 'deno'
@@ -96,7 +96,7 @@ jobs:
 
       - uses: actions/setup-node@v7.0.0
         with:
-          node-version: "24.20.0"
+          node-version: "24.21.0"
 
       - name: Download all results
         uses: actions/download-artifact@v8.0.1
@@ -161,7 +161,7 @@ jobs:
         if: steps.creds.outputs.available == 'true'
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: "24.20.0"
+          node-version: "24.21.0"
 
       - name: Deploy to Cloudflare Workers
         if: steps.creds.outputs.available == 'true'
