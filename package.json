@@ -30,7 +30,7 @@
 		"mitata": "1.0.34",
 		"pixelmatch": "7.2.0",
 		"pureimage": "0.4.20",
-		"satori": "0.33.4",
+		"satori": "0.33.5",
 		"skia-canvas": "3.0.8"
 	},
 	"devDependencies": {
