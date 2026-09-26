@@ -200,8 +200,8 @@ importers:
         specifier: 0.4.20
         version: 0.4.20
       satori:
-        specifier: 0.33.4
-        version: 0.33.4
+        specifier: 0.33.5
+        version: 0.33.5
       skia-canvas:
         specifier: 3.0.8
         version: 3.0.8(debug@4.4.3)
@@ -1081,8 +1081,8 @@ packages:
   safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
 
-  satori@0.33.4:
-    resolution: {integrity: sha512-dCnaW6D/tkCJxG5UvpZPWnnvfTdGTVVSAq1tzH6xC5MeOhAeeswRcSq5zT7C6lRCdTGow9PRGus7PCzdp5JJYw==}
+  satori@0.33.5:
+    resolution: {integrity: sha512-PNW6ktrQ8SM6kk7u4aOuTkkUewkzyTOrj+QeEzXSsnNMAdff4ire9CAqIz8+4C3rCiBtK8QTELv52AZEd1PbRw==}
     engines: {node: '>=16'}
 
   semver@7.8.4:
@@ -1726,7 +1726,7 @@ snapshots:
 
   safe-buffer@5.2.1: {}
 
-  satori@0.33.4:
+  satori@0.33.5:
     dependencies:
       '@shuding/opentype.js': 1.4.0-beta.0
       css-background-parser: 0.1.0
