@@ -5,18 +5,17 @@
 	"description": "Fair, reproducible benchmarks for JavaScript image generation libraries across runtimes, scenarios, and output formats.",
 	"type": "module",
 	"scripts": {
-		"bench": "node src/runner/bench.ts",
-		"bench:quick": "node src/runner/bench.ts --quick",
-		"validate": "node src/runner/validate.ts",
-		"report": "node src/runner/report.ts",
-		"compare": "node src/runner/compare.ts",
 		"assets:generate": "node scripts/generate-assets.ts",
 		"baselines:update": "node scripts/update-baselines.ts",
+		"bench": "node src/runner/bench.ts",
+		"bench:quick": "node src/runner/bench.ts --quick",
+		"compare": "node src/runner/compare.ts",
+		"fmt": "oxlint --fix && oxfmt",
+		"fmt:check": "oxfmt --check",
+		"lint": "oxlint && oxfmt --check",
+		"report": "node src/runner/report.ts",
 		"typecheck": "tsc --noEmit",
-		"lint": "oxlint",
-		"lint:fix": "oxlint --fix",
-		"fmt": "oxfmt",
-		"fmt:check": "oxfmt --check"
+		"validate": "node src/runner/validate.ts"
 	},
 	"dependencies": {
 		"@napi-rs/canvas": "1.0.10",
@@ -37,7 +36,8 @@
 		"@types/node": "25.9.9",
 		"@types/react": "19.3.0",
 		"oxfmt": "0.71.0",
-		"oxlint": "1.86.0",
+		"oxlint": "1.87.0",
+		"oxlint-tsgolint": "7.0.2003",
 		"typescript": "7.0.2"
 	},
 	"engines": {

@@ -44,28 +44,23 @@ for (const file of await collectFiles(inputDir, (n) => n.endsWith(".json"))) {
 	const data = JSON.parse(await readFile(file, "utf8")) as Record<string, unknown>;
 	if (data.schemaVersion !== 1) continue;
 	if (Array.isArray(data.benchmarks)) benchFiles.push(data as unknown as BenchResultFile);
-	else if (Array.isArray(data.baselines))
-		validationFiles.push(data as unknown as ValidationResultFile);
+	else if (Array.isArray(data.baselines)) validationFiles.push(data as unknown as ValidationResultFile);
 }
 if (benchFiles.length === 0) {
 	console.error(`no bench result files found under ${inputDir}`);
 	process.exit(1);
 }
 
-const runtimeLabel = (f: BenchResultFile | ValidationResultFile) =>
-	`${f.runtime.name} ${f.runtime.version}`;
+const runtimeLabel = (f: BenchResultFile | ValidationResultFile) => `${f.runtime.name} ${f.runtime.version}`;
 benchFiles.sort((a, b) => runtimeLabel(a).localeCompare(runtimeLabel(b)));
 
 const allAdapters = [...new Set(benchFiles.flatMap((f) => Object.keys(f.libraries)))];
 const allScenarios = [...new Set(benchFiles.flatMap((f) => f.benchmarks.map((b) => b.scenario)))];
-const allFormats = [
-	...new Set(benchFiles.flatMap((f) => f.benchmarks.map((b) => b.format))),
-] as OutputFormat[];
+const allFormats = [...new Set(benchFiles.flatMap((f) => f.benchmarks.map((b) => b.format)))] as OutputFormat[];
 
 const ms = (ns: number) => ns / 1e6;
 const fmtMs = (ns: number) => (ms(ns) >= 100 ? ms(ns).toFixed(0) : ms(ns).toPrecision(3));
-const opsSec = (ns: number) =>
-	1e9 / ns >= 100 ? (1e9 / ns).toFixed(0) : (1e9 / ns).toPrecision(3);
+const opsSec = (ns: number) => (1e9 / ns >= 100 ? (1e9 / ns).toFixed(0) : (1e9 / ns).toPrecision(3));
 
 const lines: string[] = [];
 lines.push("# Benchmark results");
@@ -76,9 +71,7 @@ lines.push(
 );
 if (benchFiles.some((f) => f.quick)) {
 	lines.push("");
-	lines.push(
-		"> ⚠️ Includes quick-mode runs (reduced sample counts) — treat numbers as indicative only.",
-	);
+	lines.push("> ⚠️ Includes quick-mode runs (reduced sample counts) — treat numbers as indicative only.");
 }
 lines.push("");
 
@@ -138,9 +131,7 @@ for (const scenario of allScenarios) {
 			.map((adapter) => ({
 				adapter,
 				cells: benchFiles.map((f) =>
-					f.benchmarks.find(
-						(b) => b.adapter === adapter && b.scenario === scenario && b.format === format,
-					),
+					f.benchmarks.find((b) => b.adapter === adapter && b.scenario === scenario && b.format === format),
 				),
 			}))
 			.filter((r) => r.cells.some(Boolean));
@@ -150,9 +141,7 @@ for (const scenario of allScenarios) {
 		lines.push(`| Library | ${benchFiles.map(runtimeLabel).join(" | ")} |`);
 		lines.push(`| --- | ${benchFiles.map(() => "---").join(" | ")} |`);
 		const best = benchFiles.map((_, col) => {
-			const values = rows
-				.map((r) => r.cells[col]?.stats.avgNs)
-				.filter((v): v is number => v !== undefined);
+			const values = rows.map((r) => r.cells[col]?.stats.avgNs).filter((v): v is number => v !== undefined);
 			return values.length > 0 ? Math.min(...values) : undefined;
 		});
 		for (const row of rows) {
@@ -172,15 +161,11 @@ const unsupportedRows: string[] = [];
 for (const f of benchFiles) {
 	for (const [name, info] of Object.entries(f.libraries)) {
 		if (info.status === "unsupported") {
-			unsupportedRows.push(
-				`| ${name} | ${runtimeLabel(f)} | (library failed to load) | ${info.error ?? ""} |`,
-			);
+			unsupportedRows.push(`| ${name} | ${runtimeLabel(f)} | (library failed to load) | ${info.error ?? ""} |`);
 		}
 	}
 	for (const u of f.unsupported) {
-		unsupportedRows.push(
-			`| ${u.adapter} | ${runtimeLabel(f)} | ${u.scenario} / ${u.format} | ${u.reason} |`,
-		);
+		unsupportedRows.push(`| ${u.adapter} | ${runtimeLabel(f)} | ${u.scenario} / ${u.format} | ${u.reason} |`);
 	}
 }
 if (unsupportedRows.length > 0) {
@@ -199,10 +184,7 @@ if (validationFiles.length > 0) {
 	const failures = validationFiles.flatMap((v) =>
 		v.baselines
 			.filter((b) => !b.pass)
-			.map(
-				(b) =>
-					`| ${b.adapter} | ${runtimeLabel(v)} | ${b.scenario} | ${(b.diffRatio * 100).toFixed(2)}% |`,
-			),
+			.map((b) => `| ${b.adapter} | ${runtimeLabel(v)} | ${b.scenario} | ${(b.diffRatio * 100).toFixed(2)}% |`),
 	);
 	if (failures.length === 0) {
 		lines.push("✅ All outputs match their committed per-library baselines.");
@@ -269,9 +251,9 @@ console.log(`site data written to ${path.join(siteDir, "data.json")}`);
 const outputRoots = await collectFiles(inputDir, (n) => n.endsWith(".png")).then((files) =>
 	[...new Set(files.map((f) => path.dirname(f)))].filter((d) => d.includes(`outputs${path.sep}`)),
 );
-const runtimes = [
-	...new Set(outputRoots.map((d) => d.split(`outputs${path.sep}`)[1]?.split(path.sep)[0])),
-].filter((r): r is string => Boolean(r));
+const runtimes = [...new Set(outputRoots.map((d) => d.split(`outputs${path.sep}`)[1]?.split(path.sep)[0]))].filter(
+	(r): r is string => Boolean(r),
+);
 const galleryRuntime =
 	runtimes
 		.filter((r) => r.startsWith("node"))
@@ -279,21 +261,13 @@ const galleryRuntime =
 		.pop() ?? runtimes[0];
 if (galleryRuntime) {
 	const sourceDir = outputRoots[0]!.split(`outputs${path.sep}`)[0]!;
-	await cp(
-		path.join(sourceDir, "outputs", galleryRuntime),
-		path.join(siteDir, "gallery", "outputs"),
-		{
-			recursive: true,
-		},
-	);
+	await cp(path.join(sourceDir, "outputs", galleryRuntime), path.join(siteDir, "gallery", "outputs"), {
+		recursive: true,
+	});
 	try {
-		await cp(
-			path.join(sourceDir, "diffs", galleryRuntime, "cross"),
-			path.join(siteDir, "gallery", "diffs"),
-			{
-				recursive: true,
-			},
-		);
+		await cp(path.join(sourceDir, "diffs", galleryRuntime, "cross"), path.join(siteDir, "gallery", "diffs"), {
+			recursive: true,
+		});
 	} catch {
 		// No cross diffs available — gallery just shows outputs.
 	}

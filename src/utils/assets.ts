@@ -1,13 +1,9 @@
 import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Assets } from "../types.ts";
 
-export const repoRoot: string = path.resolve(
-	path.dirname(fileURLToPath(import.meta.url)),
-	"..",
-	"..",
-);
+export const repoRoot: string = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 export const assetsDir: string = path.join(repoRoot, "assets");
 export const resultsDir: string = path.join(repoRoot, "results");

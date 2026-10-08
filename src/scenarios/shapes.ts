@@ -51,13 +51,7 @@ export const shapes: Scenario = {
 	},
 
 	element() {
-		const abs = (
-			left: number,
-			top: number,
-			width: number,
-			height: number,
-			style: Record<string, unknown>,
-		) =>
+		const abs = (left: number, top: number, width: number, height: number, style: Record<string, unknown>) =>
 			el("div", {
 				style: { position: "absolute", display: "flex", left, top, width, height, ...style },
 			});

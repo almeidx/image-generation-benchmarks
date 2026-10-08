@@ -1,12 +1,4 @@
-import type {
-	Adapter,
-	Assets,
-	Canvas2D,
-	CanvasAssets,
-	OutputFormat,
-	RenderOptions,
-	Scenario,
-} from "../types.ts";
+import type { Adapter, Assets, Canvas2D, CanvasAssets, OutputFormat, RenderOptions, Scenario } from "../types.ts";
 
 interface SkiaCanvas {
 	getContext(kind: "2d"): unknown;

@@ -83,14 +83,7 @@ export interface Canvas2D {
 	measureText(text: string): { width: number };
 	drawImage(image: unknown, ...args: number[]): void;
 	createLinearGradient(x0: number, y0: number, x1: number, y1: number): CanvasGradientLike;
-	createRadialGradient(
-		x0: number,
-		y0: number,
-		r0: number,
-		x1: number,
-		y1: number,
-		r1: number,
-	): CanvasGradientLike;
+	createRadialGradient(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number): CanvasGradientLike;
 	translate(x: number, y: number): void;
 	rotate(angle: number): void;
 	scale(x: number, y: number): void;

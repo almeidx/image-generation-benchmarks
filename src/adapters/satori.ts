@@ -1,13 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import type {
-	Adapter,
-	Assets,
-	ElementAssets,
-	OutputFormat,
-	RenderOptions,
-	Scenario,
-} from "../types.ts";
+import type { Adapter, Assets, ElementAssets, OutputFormat, RenderOptions, Scenario } from "../types.ts";
 import { toDataUri } from "../utils/assets.ts";
 
 type SatoriFn = typeof import("satori").default;

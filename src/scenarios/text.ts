@@ -44,13 +44,7 @@ export const text: Scenario = {
 	},
 
 	element() {
-		const centered = (
-			top: number,
-			fontSize: number,
-			fontWeight: number,
-			color: string,
-			content: string,
-		) =>
+		const centered = (top: number, fontSize: number, fontWeight: number, color: string, content: string) =>
 			el(
 				"div",
 				{
@@ -69,13 +63,7 @@ export const text: Scenario = {
 				},
 				content,
 			);
-		const left = (
-			top: number,
-			fontSize: number,
-			fontWeight: number,
-			color: string,
-			content: string,
-		) =>
+		const left = (top: number, fontSize: number, fontWeight: number, color: string, content: string) =>
 			el(
 				"div",
 				{

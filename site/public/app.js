@@ -1,15 +1,6 @@
 /* global Chart */
 
-const PALETTE = [
-	"#6366f1",
-	"#ec4899",
-	"#22d3ee",
-	"#10b981",
-	"#f59e0b",
-	"#a78bfa",
-	"#f87171",
-	"#34d399",
-];
+const PALETTE = ["#6366f1", "#ec4899", "#22d3ee", "#10b981", "#f59e0b", "#a78bfa", "#f87171", "#34d399"];
 const REPO_URL = "https://github.com/almeidx/image-generation-benchmarks";
 
 const $ = (id) => document.getElementById(id);
@@ -44,8 +35,7 @@ async function init() {
 	$("scenario-select").addEventListener("change", renderBench);
 	$("format-select").addEventListener("change", renderBench);
 
-	for (const r of data.runs)
-		$("coldstart-runtime").append(new Option(runtimeLabel(r), runtimeLabel(r)));
+	for (const r of data.runs) $("coldstart-runtime").append(new Option(runtimeLabel(r), runtimeLabel(r)));
 	$("coldstart-runtime").addEventListener("change", renderColdStart);
 
 	renderBench();
@@ -60,9 +50,7 @@ function benchRows(scenario, format) {
 		.map((adapter) => ({
 			adapter,
 			cells: data.runs.map((r) =>
-				r.benchmarks.find(
-					(b) => b.adapter === adapter && b.scenario === scenario && b.format === format,
-				),
+				r.benchmarks.find((b) => b.adapter === adapter && b.scenario === scenario && b.format === format),
 			),
 		}))
 		.filter((row) => row.cells.some(Boolean));
@@ -123,8 +111,7 @@ function renderBench() {
 }
 
 function renderColdStart() {
-	const run =
-		data.runs.find((r) => runtimeLabel(r) === $("coldstart-runtime").value) ?? data.runs[0];
+	const run = data.runs.find((r) => runtimeLabel(r) === $("coldstart-runtime").value) ?? data.runs[0];
 	const adapters = Object.entries(run.libraries).filter(([, info]) => info.setup);
 	const phases = [
 		["import", (s) => s.importMs],
@@ -202,22 +189,17 @@ function renderSimilarity() {
 	const scenarios = [...new Set(v.crossLibrary.map((c) => c.scenario))];
 	$("similarity-table").innerHTML = scenarios
 		.map((scenario) => {
-			const pairs = v.crossLibrary
-				.filter((c) => c.scenario === scenario)
-				.toSorted((a, b) => b.diffRatio - a.diffRatio);
+			const pairs = v.crossLibrary.filter((c) => c.scenario === scenario).toSorted((a, b) => b.diffRatio - a.diffRatio);
 			return `
         <h3 style="font-size:1rem;margin:1rem 0 0.25rem">${scenario}</h3>
         <table>
           <thead><tr><th>Pair</th><th>Pixels differing</th></tr></thead>
           <tbody>${pairs
-						.map(
-							(p) =>
-								`<tr><td>${p.adapterA} ↔ ${p.adapterB}</td><td>${(p.diffRatio * 100).toFixed(2)}%</td></tr>`,
-						)
+						.map((p) => `<tr><td>${p.adapterA} ↔ ${p.adapterB}</td><td>${(p.diffRatio * 100).toFixed(2)}%</td></tr>`)
 						.join("")}</tbody>
         </table>`;
 		})
 		.join("");
 }
 
-init();
+void init();

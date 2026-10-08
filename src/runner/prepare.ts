@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { adapters } from "../adapters/index.ts";
+import { scenarios } from "../scenarios/index.ts";
 import type {
 	Adapter,
 	Assets,
@@ -10,8 +12,6 @@ import type {
 	SetupTimings,
 	UnsupportedEntry,
 } from "../types.ts";
-import { adapters } from "../adapters/index.ts";
-import { scenarios } from "../scenarios/index.ts";
 import { loadAssets, repoRoot } from "../utils/assets.ts";
 
 /** Identical encode settings for every library. */
@@ -58,12 +58,8 @@ export async function prepare(filter?: {
 	const combos: Combo[] = [];
 	const unsupported: UnsupportedEntry[] = [];
 
-	const selectedAdapters = adapters.filter(
-		(a) => !filter?.adapters || filter.adapters.includes(a.name),
-	);
-	const selectedScenarios = scenarios.filter(
-		(s) => !filter?.scenarios || filter.scenarios.includes(s.name),
-	);
+	const selectedAdapters = adapters.filter((a) => !filter?.adapters || filter.adapters.includes(a.name));
+	const selectedScenarios = scenarios.filter((s) => !filter?.scenarios || filter.scenarios.includes(s.name));
 
 	for (const adapter of selectedAdapters) {
 		const version = versions[adapter.packageName] ?? "unknown";
@@ -72,8 +68,7 @@ export async function prepare(filter?: {
 			const phases = await adapter.setup(assets);
 			// First end-to-end render approximates the remaining cold-start cost
 			// (lazy canvas/font initialization, JIT warm-up, etc).
-			const first =
-				selectedScenarios.find((s) => s.kinds.includes(adapter.kind)) ?? selectedScenarios[0];
+			const first = selectedScenarios.find((s) => s.kinds.includes(adapter.kind)) ?? selectedScenarios[0];
 			const t0 = performance.now();
 			if (first) await adapter.render(first, "png", renderOptions);
 			setup = { ...phases, firstRenderMs: performance.now() - t0 };

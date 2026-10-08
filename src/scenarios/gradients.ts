@@ -49,8 +49,7 @@ export const gradients: Scenario = {
 					height: "100%",
 					display: "flex",
 					position: "relative",
-					backgroundImage:
-						"linear-gradient(to bottom right, #0f172a 0%, #312e81 50%, #6366f1 100%)",
+					backgroundImage: "linear-gradient(to bottom right, #0f172a 0%, #312e81 50%, #6366f1 100%)",
 				},
 			},
 			el("div", {

@@ -7,8 +7,8 @@
  * A/B run must use the same mode).
  */
 import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 import { parseArgs } from "node:util";
 import { bench, run } from "mitata";
 import type { BenchEntry, BenchResultFile, BenchStats } from "../types.ts";

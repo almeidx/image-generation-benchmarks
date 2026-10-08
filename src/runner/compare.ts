@@ -43,9 +43,7 @@ const outPath = values.out;
 const baselinePath = values.baseline;
 
 if (!headPath) {
-	console.error(
-		"usage: node src/runner/compare.ts base.json head.json [--out file] [--baseline perf.json]",
-	);
+	console.error("usage: node src/runner/compare.ts base.json head.json [--out file] [--baseline perf.json]");
 	process.exit(1);
 }
 
@@ -58,14 +56,14 @@ async function load(file: string): Promise<BenchResultFile | undefined> {
 		// base commit predates the runner. Anything other than "not found" (a
 		// corrupt or unreadable file) is a real problem worth surfacing.
 		if ((err as { code?: string }).code !== "ENOENT") {
-			console.error(`warning: could not read ${file}: ${err}`);
+			console.error(`warning: could not read ${file}:`, err);
 		}
 		return undefined;
 	}
 	try {
 		return JSON.parse(text) as BenchResultFile;
 	} catch (err) {
-		console.error(`warning: could not parse ${file}: ${err}`);
+		console.error(`warning: could not parse ${file}:`, err);
 		return undefined;
 	}
 }
@@ -86,10 +84,8 @@ lines.push(
 );
 lines.push("");
 
-const key = (b: { adapter: string; scenario: string; format: string }) =>
-	`${b.adapter}|${b.scenario}|${b.format}`;
-const name = (b: { adapter: string; scenario: string; format: string }) =>
-	`${b.adapter} · ${b.scenario} · ${b.format}`;
+const key = (b: { adapter: string; scenario: string; format: string }) => `${b.adapter}|${b.scenario}|${b.format}`;
+const name = (b: { adapter: string; scenario: string; format: string }) => `${b.adapter} · ${b.scenario} · ${b.format}`;
 const fmtMs = (ns: number) => `${(ns / 1e6).toPrecision(3)} ms`;
 const pctOf = (delta: number) => `${delta > 0 ? "+" : ""}${(delta * 100).toFixed(1)}%`;
 
@@ -162,9 +158,7 @@ if (!base) {
 	lines.push("### This PR (base → head, same runner)");
 	lines.push("");
 	if (flagged.length === 0) {
-		lines.push(
-			`No benchmark moved beyond ±${FLAG_THRESHOLD * 100}% *and* its own quick-mode noise.`,
-		);
+		lines.push(`No benchmark moved beyond ±${FLAG_THRESHOLD * 100}% *and* its own quick-mode noise.`);
 		lines.push("");
 	} else {
 		lines.push("**Interesting changes** (beyond ±15% and the benchmark's own measured noise):");
@@ -173,9 +167,7 @@ if (!base) {
 		lines.push("| --- | --- | --- | --- |");
 		for (const r of flagged) {
 			const icon = r.delta < 0 ? "🚀" : "⚠️";
-			lines.push(
-				`| ${r.name} | ${fmtMs(r.baseNs)} | ${fmtMs(r.headNs)} | ${icon} ${pctOf(r.delta)} |`,
-			);
+			lines.push(`| ${r.name} | ${fmtMs(r.baseNs)} | ${fmtMs(r.headNs)} | ${icon} ${pctOf(r.delta)} |`);
 		}
 		lines.push("");
 	}
@@ -231,17 +223,13 @@ if (baseline) {
 	);
 	lines.push("");
 	if (drifts.length === 0) {
-		lines.push(
-			`No benchmark drifted beyond ±${DRIFT_THRESHOLD * 100}% from the committed baseline.`,
-		);
+		lines.push(`No benchmark drifted beyond ±${DRIFT_THRESHOLD * 100}% from the committed baseline.`);
 	} else {
 		lines.push("| Benchmark | Baseline | Head | Δ |");
 		lines.push("| --- | --- | --- | --- |");
 		for (const d of drifts) {
 			const icon = d.delta < 0 ? "🚀" : "⚠️";
-			lines.push(
-				`| ${d.name} | ${fmtMs(d.refNs)} | ${fmtMs(d.headNs)} | ${icon} ${pctOf(d.delta)} |`,
-			);
+			lines.push(`| ${d.name} | ${fmtMs(d.refNs)} | ${fmtMs(d.headNs)} | ${icon} ${pctOf(d.delta)} |`);
 		}
 	}
 	lines.push("");

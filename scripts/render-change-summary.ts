@@ -32,10 +32,7 @@ async function collectValidationFiles(dir: string): Promise<ValidationResultFile
 		if (!entry.isFile() || !entry.name.startsWith("validation-") || !entry.name.endsWith(".json")) {
 			continue;
 		}
-		const data = JSON.parse(await readFile(path.join(dir, entry.name), "utf8")) as Record<
-			string,
-			unknown
-		>;
+		const data = JSON.parse(await readFile(path.join(dir, entry.name), "utf8")) as Record<string, unknown>;
 		if (data.schemaVersion === 1 && Array.isArray(data.baselines)) {
 			files.push(data as unknown as ValidationResultFile);
 		}
@@ -49,9 +46,7 @@ const runtimeLabel = (v: ValidationResultFile) => `${v.runtime.name} ${v.runtime
 const changed = validations.flatMap((v) =>
 	v.baselines.filter((b) => !b.pass).map((b) => ({ runtime: runtimeLabel(v), ...b })),
 );
-const missing = validations.flatMap((v) =>
-	v.missingBaselines.map((m) => ({ runtime: runtimeLabel(v), ...m })),
-);
+const missing = validations.flatMap((v) => v.missingBaselines.map((m) => ({ runtime: runtimeLabel(v), ...m })));
 
 const lines: string[] = [];
 lines.push("## 🎨 Baseline regeneration");
@@ -72,9 +67,7 @@ if (changed.length === 0 && missing.length === 0) {
 		lines.push("| Library | Runtime | Scenario | Pixels differing |");
 		lines.push("| --- | --- | --- | --- |");
 		for (const c of changed.toSorted((a, b) => b.diffRatio - a.diffRatio)) {
-			lines.push(
-				`| ${c.adapter} | ${c.runtime} | ${c.scenario} | ${(c.diffRatio * 100).toFixed(3)}% |`,
-			);
+			lines.push(`| ${c.adapter} | ${c.runtime} | ${c.scenario} | ${(c.diffRatio * 100).toFixed(3)}% |`);
 		}
 		lines.push("");
 	}

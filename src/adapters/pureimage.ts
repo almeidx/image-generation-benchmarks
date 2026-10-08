@@ -1,13 +1,5 @@
 import { PassThrough, Readable } from "node:stream";
-import type {
-	Adapter,
-	Assets,
-	Canvas2D,
-	CanvasAssets,
-	OutputFormat,
-	RenderOptions,
-	Scenario,
-} from "../types.ts";
+import type { Adapter, Assets, Canvas2D, CanvasAssets, OutputFormat, RenderOptions, Scenario } from "../types.ts";
 
 interface PureBitmap {
 	getContext(kind: "2d"): Canvas2D;
@@ -39,16 +31,12 @@ function shimFont(ctx: Canvas2D): Canvas2D {
 		},
 		get(target, prop) {
 			const value = target[prop];
-			return typeof value === "function"
-				? (value as (...a: unknown[]) => unknown).bind(target)
-				: value;
+			return typeof value === "function" ? (value as (...a: unknown[]) => unknown).bind(target) : value;
 		},
 	}) as unknown as Canvas2D;
 }
 
-async function collectStream(
-	write: (stream: PassThrough) => Promise<unknown>,
-): Promise<Uint8Array> {
+async function collectStream(write: (stream: PassThrough) => Promise<unknown>): Promise<Uint8Array> {
 	const stream = new PassThrough();
 	const chunks: Buffer[] = [];
 	stream.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -101,9 +89,7 @@ export const pureimageAdapter: Adapter = {
 			return collectStream((s) => mod!.encodePNGToStream(entry.bitmap as never, s));
 		}
 		if (format === "jpeg") {
-			return collectStream((s) =>
-				mod!.encodeJPEGToStream(entry.bitmap as never, s, options.quality),
-			);
+			return collectStream((s) => mod!.encodeJPEGToStream(entry.bitmap as never, s, options.quality));
 		}
 		throw new Error(`format not supported: ${format}`);
 	},

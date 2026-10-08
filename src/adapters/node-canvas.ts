@@ -1,20 +1,8 @@
-import type {
-	Adapter,
-	Assets,
-	Canvas2D,
-	CanvasAssets,
-	OutputFormat,
-	RenderOptions,
-	Scenario,
-} from "../types.ts";
+import type { Adapter, Assets, Canvas2D, CanvasAssets, OutputFormat, RenderOptions, Scenario } from "../types.ts";
 
 interface NodeCanvas {
 	getContext(kind: "2d"): unknown;
-	toBuffer(
-		cb: (err: Error | null, buf: Buffer) => void,
-		mime: string,
-		cfg?: { quality?: number },
-	): void;
+	toBuffer(cb: (err: Error | null, buf: Buffer) => void, mime: string, cfg?: { quality?: number }): void;
 	toBuffer(): Buffer;
 }
 
@@ -22,11 +10,7 @@ let mod: typeof import("canvas") | undefined;
 const canvases = new Map<string, NodeCanvas>();
 let images: CanvasAssets | undefined;
 
-function encodeAsync(
-	canvas: NodeCanvas,
-	mime: string,
-	cfg?: { quality?: number },
-): Promise<Buffer> {
+function encodeAsync(canvas: NodeCanvas, mime: string, cfg?: { quality?: number }): Promise<Buffer> {
 	return new Promise((resolve, reject) => {
 		canvas.toBuffer((err, buf) => (err ? reject(err) : resolve(buf)), mime, cfg);
 	});
@@ -58,11 +42,7 @@ export const nodeCanvasAdapter: Adapter = {
 	async render(scenario: Scenario, format: OutputFormat, options: RenderOptions) {
 		if (format === "svg") {
 			// SVG requires a dedicated canvas type; creating it is part of the cost.
-			const svgCanvas = mod!.createCanvas(
-				scenario.width,
-				scenario.height,
-				"svg",
-			) as unknown as NodeCanvas;
+			const svgCanvas = mod!.createCanvas(scenario.width, scenario.height, "svg") as unknown as NodeCanvas;
 			scenario.drawCanvas!(svgCanvas.getContext("2d") as Canvas2D, images!);
 			return svgCanvas.toBuffer();
 		}
@@ -78,8 +58,7 @@ export const nodeCanvasAdapter: Adapter = {
 		scenario.drawCanvas!(ctx, images!);
 		ctx.restore();
 		if (format === "png") return encodeAsync(canvas, "image/png");
-		if (format === "jpeg")
-			return encodeAsync(canvas, "image/jpeg", { quality: options.quality / 100 });
+		if (format === "jpeg") return encodeAsync(canvas, "image/jpeg", { quality: options.quality / 100 });
 		throw new Error(`format not supported: ${format}`);
 	},
 };

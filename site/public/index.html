@@ -128,9 +128,9 @@
 			<h1>JavaScript Image Generation Benchmarks <span class="pill">FAIR</span></h1>
 			<p class="muted" id="meta">Loading results…</p>
 			<p>
-				Seven libraries rendering identical scenarios across Node.js, Bun, and Deno — steady-state
-				speed, cold-start cost, format support, and pixel-level output validation. Methodology and
-				source: <a id="repo-link" href="#">GitHub repository</a>.
+				Seven libraries rendering identical scenarios across Node.js, Bun, and Deno — steady-state speed, cold-start
+				cost, format support, and pixel-level output validation. Methodology and source:
+				<a id="repo-link" href="#">GitHub repository</a>.
 			</p>
 
 			<h2>Steady-state performance</h2>
@@ -144,8 +144,8 @@
 
 			<h2>Cold start / setup cost</h2>
 			<p class="muted">
-				Module import + font registration + image decoding + first render, measured once per
-				process. Relevant for serverless.
+				Module import + font registration + image decoding + first render, measured once per process. Relevant for
+				serverless.
 			</p>
 			<div class="controls"><select id="coldstart-runtime"></select></div>
 			<div class="panel"><canvas id="coldstart-chart" height="120"></canvas></div>
@@ -155,16 +155,15 @@
 
 			<h2>Output gallery</h2>
 			<p class="muted">
-				What each library actually rendered for the selected scenario (PNG outputs from the primary
-				Node.js run).
+				What each library actually rendered for the selected scenario (PNG outputs from the primary Node.js run).
 			</p>
 			<div class="gallery" id="gallery"></div>
 
 			<h2>Cross-library similarity</h2>
 			<p class="muted">
-				Pixel difference between libraries rendering the same scenario, within each paradigm group
-				(canvas-API vs declarative). Rasterizers legitimately differ in antialiasing and font
-				rendering — large values point at diverging feature support, visible in the diff images.
+				Pixel difference between libraries rendering the same scenario, within each paradigm group (canvas-API vs
+				declarative). Rasterizers legitimately differ in antialiasing and font rendering — large values point at
+				diverging feature support, visible in the diff images.
 			</p>
 			<div class="panel" id="similarity-table"></div>
 		</main>

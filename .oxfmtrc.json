@@ -1,4 +1,8 @@
 {
 	"$schema": "./node_modules/oxfmt/configuration_schema.json",
-	"useTabs": true
+	"useTabs": true,
+	"printWidth": 120,
+	"ignorePatterns": ["dist", "release", "node_modules", "coverage", ".agents"],
+	"sortImports": { "newlinesBetween": false },
+	"sortPackageJson": { "sortScripts": true }
 }

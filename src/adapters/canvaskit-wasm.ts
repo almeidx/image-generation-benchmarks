@@ -1,14 +1,6 @@
 import { createRequire } from "node:module";
 import path from "node:path";
-import type {
-	Adapter,
-	Assets,
-	Canvas2D,
-	CanvasAssets,
-	OutputFormat,
-	RenderOptions,
-	Scenario,
-} from "../types.ts";
+import type { Adapter, Assets, Canvas2D, CanvasAssets, OutputFormat, RenderOptions, Scenario } from "../types.ts";
 
 interface EmulatedCanvas {
 	getContext(kind: "2d"): unknown;
@@ -36,10 +28,7 @@ function dataUrlToBytes(dataUrl: string, expectedMime: string): Uint8Array {
 	return Uint8Array.from(Buffer.from(dataUrl.slice(comma + 1), "base64"));
 }
 
-function getCanvas(
-	width: number,
-	height: number,
-): { canvas: EmulatedCanvas; images: CanvasAssets } {
+function getCanvas(width: number, height: number): { canvas: EmulatedCanvas; images: CanvasAssets } {
 	const key = `${width}x${height}`;
 	let entry = canvases.get(key);
 	if (!entry) {

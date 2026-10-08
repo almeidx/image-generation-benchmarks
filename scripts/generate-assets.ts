@@ -50,12 +50,7 @@ await mkdir(imageDir, { recursive: true });
 		ctx.moveTo(0, 1200);
 		ctx.lineTo(0, baseY);
 		for (let x = 0; x <= 1600; x += 100) {
-			ctx.quadraticCurveTo(
-				x + 50,
-				baseY - amp * Math.sin(x / 240),
-				x + 100,
-				baseY + amp * 0.3 * Math.cos(x / 180),
-			);
+			ctx.quadraticCurveTo(x + 50, baseY - amp * Math.sin(x / 240), x + 100, baseY + amp * 0.3 * Math.cos(x / 180));
 		}
 		ctx.lineTo(1600, 1200);
 		ctx.closePath();

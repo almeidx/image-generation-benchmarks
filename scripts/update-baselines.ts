@@ -5,9 +5,9 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { prepare } from "../src/runner/prepare.ts";
 import { baselinesDir } from "../src/utils/assets.ts";
 import { detectRuntime } from "../src/utils/runtime.ts";
-import { prepare } from "../src/runner/prepare.ts";
 
 const runtime = detectRuntime();
 if (runtime.name !== "node" || process.platform !== "linux") {

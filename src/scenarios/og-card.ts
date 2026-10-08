@@ -67,8 +67,7 @@ export const ogCard: Scenario = {
 					display: "flex",
 					position: "relative",
 					fontFamily: "Inter",
-					backgroundImage:
-						"linear-gradient(to bottom right, #0f172a 0%, #1e1b4b 55%, #312e81 100%)",
+					backgroundImage: "linear-gradient(to bottom right, #0f172a 0%, #1e1b4b 55%, #312e81 100%)",
 				},
 			},
 			el("div", {

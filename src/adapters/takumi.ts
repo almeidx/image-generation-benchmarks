@@ -1,11 +1,4 @@
-import type {
-	Adapter,
-	Assets,
-	ElementAssets,
-	OutputFormat,
-	RenderOptions,
-	Scenario,
-} from "../types.ts";
+import type { Adapter, Assets, ElementAssets, OutputFormat, RenderOptions, Scenario } from "../types.ts";
 
 // Structural type: @takumi-rs/core's published d.ts uses extensionless
 // relative imports that don't resolve under moduleResolution nodenext.
