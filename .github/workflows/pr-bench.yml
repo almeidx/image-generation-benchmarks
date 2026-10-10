@@ -16,15 +16,21 @@ jobs:
     name: A/B benchmark (base vs head)
     runs-on: ubuntu-latest
     steps:
-      # Head (the PR merge commit) in the default path, base in ./base —
-      # both run on the same machine so the hardware is controlled and the
+      # Head (the PR merge commit) in the default path, base in $RUNNER_TEMP/base.
+      # Base lives outside the workspace on purpose: oxlint/oxfmt walk the whole
+      # workspace, and base's .oxlintrc.json (options.typeAware) fails oxlint's
+      # nested-config parsing — typeAware is root-config-only since oxlint 1.87.
+      # Both run on the same machine so the hardware is controlled and the
       # diff reflects the code/dependency change.
       - uses: actions/checkout@v7.0.1
 
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: base
+      - name: Check out base commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh repo clone "${{ github.repository }}" "$RUNNER_TEMP/base" -- --no-checkout --depth 1
+          git -C "$RUNNER_TEMP/base" fetch --quiet --depth 1 origin "${{ github.event.pull_request.base.sha }}"
+          git -C "$RUNNER_TEMP/base" checkout --quiet "${{ github.event.pull_request.base.sha }}"
 
       - uses: pnpm/action-setup@v6.1.0
 
@@ -50,8 +56,8 @@ jobs:
 
       - name: Bench base
         run: |
-          if [ -f base/src/runner/bench.ts ]; then
-            cd base
+          if [ -f "$RUNNER_TEMP/base/src/runner/bench.ts" ]; then
+            cd "$RUNNER_TEMP/base"
             # Fall back to npm for base commits that predate the pnpm switch.
             if [ -f pnpm-lock.yaml ]; then
               pnpm install --frozen-lockfile
