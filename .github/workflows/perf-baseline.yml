@@ -40,7 +40,7 @@ jobs:
 
       # Same Node version the PR benchmark job uses, so the committed baseline
       # and the head numbers it's compared against are measured identically.
-      - uses: actions/setup-node@v7.0.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: "24.21.0"
           cache: pnpm

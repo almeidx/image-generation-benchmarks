@@ -35,7 +35,7 @@
 	"devDependencies": {
 		"@types/node": "25.9.9",
 		"@types/react": "19.3.0",
-		"oxfmt": "0.71.0",
+		"oxfmt": "0.72.0",
 		"oxlint": "1.87.0",
 		"oxlint-tsgolint": "7.0.2003",
 		"typescript": "7.0.2"
@@ -43,7 +43,7 @@
 	"engines": {
 		"node": ">=22.18.0"
 	},
-	"packageManager": "pnpm@12.9.1",
+	"packageManager": "pnpm@12.10.1",
 	"trustedDependencies": [
 		"canvas",
 		"skia-canvas"
