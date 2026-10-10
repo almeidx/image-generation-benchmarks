@@ -169,7 +169,5 @@ const file: BenchResultFile = {
 
 const outPath = opts.out ?? path.join(resultsDir, `${id}.json`);
 await mkdir(path.dirname(outPath), { recursive: true });
-// oxfmt formats JSON with tabs and a trailing newline; matching it here keeps
-// committed benchmark output (baselines/perf.json) fmt:check-clean as written.
 await writeFile(outPath, `${JSON.stringify(file, null, "\t")}\n`);
 console.log(`results written to ${outPath}`);
