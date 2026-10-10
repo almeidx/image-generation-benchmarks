@@ -74,7 +74,10 @@ export const shapes: Scenario = {
 			abs(70, 420, 140, 140, { backgroundColor: "#22d3ee", borderRadius: 9999 }),
 			abs(270, 420, 140, 140, { backgroundColor: "rgba(236, 72, 153, 0.6)", borderRadius: 9999 }),
 			abs(390, 420, 140, 140, { backgroundColor: "rgba(99, 102, 241, 0.6)", borderRadius: 9999 }),
-			abs(560, 420, 200, 140, { border: "8px solid #0f172a" }),
+			// Satori >=0.46 defaults to content-box sizing (borders paint outside),
+			// unlike the canvas adapters that stroke inside the shape — border-box
+			// keeps the CSS box 200x140 like the canvas drawCanvas branch.
+			abs(560, 420, 200, 140, { boxSizing: "border-box", border: "8px solid #0f172a" }),
 		);
 	},
 };

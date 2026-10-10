@@ -56,9 +56,6 @@ jobs:
             --warmup "${{ inputs.warmup || '10' }}" \
             --out baselines/perf.json
 
-      - name: Format baseline
-        run: pnpm exec oxfmt baselines/perf.json
-
       - name: Open baseline PR
         uses: peter-evans/create-pull-request@v8.1.1
         with:
