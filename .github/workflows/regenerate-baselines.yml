@@ -66,11 +66,6 @@ jobs:
       - name: Refresh performance baseline
         run: node src/runner/bench.ts --quick --samples 100 --warmup 10 --out baselines/perf.json
 
-      # bench.ts writes JSON.stringify(..., null, 2) but oxfmt formats JSON with
-      # tabs, and pr-bench runs fmt:check — same fix-up perf-baseline.yml does.
-      - name: Format performance baseline
-        run: pnpm exec oxfmt baselines/perf.json
-
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
