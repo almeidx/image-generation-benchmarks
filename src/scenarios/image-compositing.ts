@@ -86,6 +86,10 @@ export const imageCompositing: Scenario = {
 					width: 140,
 					height: 140,
 					borderRadius: 9999,
+					// Satori >=0.46 defaults to content-box sizing (borders paint
+					// outside), unlike the canvas adapters that stroke inside the
+					// shape — border-box keeps the ring over the avatar like them.
+					boxSizing: "border-box",
 					border: "6px solid #f8fafc",
 				},
 			}),

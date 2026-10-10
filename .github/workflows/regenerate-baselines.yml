@@ -30,9 +30,13 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      # Check out the merge commit (refs/pull/N/merge) rather than head.ref:
+      # renovate branches are often behind main, and regenerating against a
+      # stale tree rewrites baselines for dependencies and src that this PR
+      # never touched (that is how the takumi baselines drifted in #70).
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v6.1.0

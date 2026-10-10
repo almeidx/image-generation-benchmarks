@@ -200,8 +200,8 @@ importers:
         specifier: 0.4.20
         version: 0.4.20
       satori:
-        specifier: 0.35.0
-        version: 0.35.0
+        specifier: 0.46.0
+        version: 0.46.0
       skia-canvas:
         specifier: 3.0.8
         version: 3.0.8(debug@4.4.3)
@@ -961,9 +961,6 @@ packages:
   fflate@0.7.3:
     resolution: {integrity: sha512-0Zz1jOzJWERhyhsimS54VTqOteCNwRtIlh8isdL0AXLo0g7xNTfTL7oWrkmCnPhZGocKIkWHBistBrrpoNH3aw==}
 
-  fflate@0.7.4:
-    resolution: {integrity: sha512-5u2V/CDW15QM1XbbgS+0DfPxVB+jUKhWEKuuFuHncbk3tEEqzmoXL+2KyOFuKGqOnmdIy0/davWF1CkuwtibCw==}
-
   fflate@0.8.3:
     resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
 
@@ -1118,8 +1115,8 @@ packages:
   safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
 
-  satori@0.35.0:
-    resolution: {integrity: sha512-YyoP7axF2T93XOWXQXLH4t+cvLgZ+MeYV/xruXJfPa/czpcRqaG41/8Bz3mzgYj/7NxdrqJOx3YtzWy1MLtG5g==}
+  satori@0.46.0:
+    resolution: {integrity: sha512-vSK+32BbUPr3bTZUBkDCiwbeNBBiqkXXohJcE49Uak72OxEjSooQh9x/s2hXbYudW4k/lHxrK8K5Ql4kSj+m8A==}
     engines: {node: '>=16'}
 
   semver@7.8.4:
@@ -1182,9 +1179,6 @@ packages:
 
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
-
-  yoga-layout@3.2.1:
-    resolution: {integrity: sha512-0LPOt3AxKqMdFBZA3HBAt/t/8vIKq7VaQYbuA8WxCgung+p9TVyKRYdpvCb80HcdTN2NkbIKbhNwKUfm3tQywQ==}
 
 snapshots:
 
@@ -1422,7 +1416,7 @@ snapshots:
 
   '@shuding/opentype.js@1.4.0-beta.0':
     dependencies:
-      fflate: 0.7.4
+      fflate: 0.7.3
       string.prototype.codepointat: 0.2.1
 
   '@takumi-rs/core-darwin-arm64@2.14.0':
@@ -1615,8 +1609,6 @@ snapshots:
 
   fflate@0.7.3: {}
 
-  fflate@0.7.4: {}
-
   fflate@0.8.3: {}
 
   follow-redirects@1.16.0(debug@4.4.3):
@@ -1791,7 +1783,7 @@ snapshots:
 
   safe-buffer@5.2.1: {}
 
-  satori@0.35.0:
+  satori@0.46.0:
     dependencies:
       '@shuding/opentype.js': 1.4.0-beta.0
       css-background-parser: 0.1.0
@@ -1805,7 +1797,6 @@ snapshots:
       linebreak: 1.1.0
       parse-css-color: 0.2.1
       postcss-value-parser: 4.2.0
-      yoga-layout: 3.2.1
 
   semver@7.8.4: {}
 
@@ -1895,5 +1886,3 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   wrappy@1.0.2: {}
-
-  yoga-layout@3.2.1: {}

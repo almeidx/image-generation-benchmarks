@@ -169,5 +169,5 @@ const file: BenchResultFile = {
 
 const outPath = opts.out ?? path.join(resultsDir, `${id}.json`);
 await mkdir(path.dirname(outPath), { recursive: true });
-await writeFile(outPath, JSON.stringify(file, null, 2));
+await writeFile(outPath, `${JSON.stringify(file, null, "\t")}\n`);
 console.log(`results written to ${outPath}`);
