@@ -34,7 +34,12 @@ export const skiaCanvasAdapter: Adapter = {
 		const key = `${scenario.width}x${scenario.height}`;
 		let canvas = canvases.get(key);
 		if (!canvas) {
-			canvas = new mod!.Canvas(scenario.width, scenario.height) as unknown as SkiaCanvas;
+			// skia-canvas 4 renders on the GPU by default and only falls back to CPU
+			// when no usable Vulkan device exists. GPU rasterization anti-aliases
+			// differently from the CPU raster that produced the committed baselines,
+			// so pin CPU to keep validation and timings machine-independent.
+			// (v3 defaulted to GPU too but ignored {gpu:false}; v4 honors it.)
+			canvas = new mod!.Canvas(scenario.width, scenario.height, { gpu: false }) as unknown as SkiaCanvas;
 			canvases.set(key, canvas);
 		}
 		const ctx = canvas.getContext("2d") as Canvas2D;
