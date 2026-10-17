@@ -1,12 +1,13 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"extends": ["config:recommended", ":pinAllExceptPeerDependencies", ":semanticCommitsDisabled"],
-	"labels": ["dependencies"],
+	"assignees": ["almeidx"],
+	"commitMessagePrefix": "deps:",
+	"extends": ["config:recommended", ":pinAllExceptPeerDependencies"],
+	"lockFileMaintenance": {
+		"enabled": true,
+		"schedule": ["* 0-8 * * 6"]
+	},
 	"minimumReleaseAge": "1 day",
-	"rangeStrategy": "pin",
-	"rebaseWhen": "conflicted",
-	"schedule": ["* 0-8 * * 6"],
-	"timezone": "Europe/Lisbon",
 	"packageRules": [
 		{
 			"description": "Everything that is not a benchmark candidate (harness, types, tooling)",
@@ -27,9 +28,11 @@
 				"@resvg/resvg-js",
 				"@resvg/resvg-wasm"
 			],
-			"groupName": "candidate libraries",
-			"labels": ["dependencies", "candidates"],
-			"schedule": ["* 0-8 * * 6"]
+			"groupName": "candidate libraries"
+		},
+		{
+			"enabled": false,
+			"matchDepTypes": ["engines"]
 		},
 		{
 			"description": "Runtime version bumps get their own PR so the A/B benchmark comment attributes performance shifts to the runtime change",
@@ -53,5 +56,10 @@
 			"datasourceTemplate": "node-version",
 			"versioningTemplate": "node"
 		}
-	]
+	],
+	"postUpdateOptions": ["pnpmDedupe"],
+	"prHourlyLimit": 0,
+	"rangeStrategy": "pin",
+	"schedule": ["* 0-8 * * 6"],
+	"timezone": "Europe/Lisbon"
 }
