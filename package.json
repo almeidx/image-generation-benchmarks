@@ -45,7 +45,6 @@
 	},
 	"packageManager": "pnpm@12.14.0",
 	"trustedDependencies": [
-		"canvas",
-		"skia-canvas"
+		"canvas"
 	]
 }
