@@ -18,18 +18,18 @@
 		"validate": "node src/runner/validate.ts"
 	},
 	"dependencies": {
-		"@napi-rs/canvas": "1.0.10",
+		"@napi-rs/canvas": "1.0.11",
 		"@resvg/resvg-js": "2.6.2",
 		"@resvg/resvg-wasm": "2.6.2",
-		"@takumi-rs/core": "2.14.0",
-		"@takumi-rs/helpers": "2.14.0",
+		"@takumi-rs/core": "2.16.2",
+		"@takumi-rs/helpers": "2.16.2",
 		"canvas": "3.2.3",
 		"canvaskit-wasm": "0.42.0",
 		"fast-png": "8.0.0",
 		"mitata": "1.0.34",
 		"pixelmatch": "8.0.0",
 		"pureimage": "0.4.20",
-		"satori": "0.46.0",
+		"satori": "0.62.0",
 		"skia-canvas": "3.0.8"
 	},
 	"devDependencies": {

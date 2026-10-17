@@ -11,12 +11,12 @@ interface Renderer {
 			height: number;
 			format: string;
 			quality?: number;
-			stylesheets?: string[];
+			css?: string[];
 			images?: ImageSource[];
 		},
 	): Promise<Buffer>;
 }
-type FromJsx = (element: unknown) => Promise<{ node: unknown; stylesheets: string[] }>;
+type FromJsx = (element: unknown) => Promise<{ node: unknown; css: string[] }>;
 type ImageSource = { src: string; data: Uint8Array };
 
 let renderer: Renderer | undefined;
@@ -58,13 +58,13 @@ export const takumiAdapter: Adapter = {
 		// The element -> node conversion is part of takumi's real pipeline, so it
 		// is intentionally inside the timed region.
 		const element = scenario.element!(elementAssets!);
-		const { node, stylesheets } = await fromJsx!(element);
+		const { node, css } = await fromJsx!(element);
 		const buf = await renderer!.render(node, {
 			width: scenario.width,
 			height: scenario.height,
 			format,
 			quality: options.quality,
-			stylesheets,
+			css,
 			images: scenarioImages![scenario.name],
 		});
 		return Uint8Array.from(buf);

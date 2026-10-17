@@ -15,7 +15,7 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 // fast-png is pure JS (no node:zlib sync internals), so validation runs
 // identically on Node, Bun, and Deno.
-import { decode as decodePng, encode as encodePng } from "fast-png";
+import { convertIndexedToRgb, decode as decodePng, encode as encodePng } from "fast-png";
 import pixelmatch from "pixelmatch";
 import type { BaselineComparison, CrossLibComparison, ValidationResultFile } from "../types.ts";
 import { baselinesDir, resultsDir } from "../utils/assets.ts";
@@ -42,8 +42,18 @@ interface Rgba {
 }
 
 function toRgba(bytes: Uint8Array): Rgba {
-	const png = decodePng(bytes);
-	if (png.depth === 16) throw new Error("16-bit PNGs are not supported by the validator");
+	const decoded = decodePng(bytes);
+	if (decoded.depth === 16) throw new Error("16-bit PNGs are not supported by the validator");
+	// Palette (indexed-color) PNGs decode to one channel of palette indices.
+	// takumi >= 2.16 emits this encoding for flat-color images; expand through
+	// the palette so the indices aren't misread as grayscale values.
+	const png = decoded.palette
+		? {
+				...decoded,
+				data: convertIndexedToRgb(decoded),
+				channels: decoded.palette[0]!.length === 4 ? 4 : 3,
+			}
+		: decoded;
 	const pixels = png.width * png.height;
 	const src = png.data as Uint8Array;
 	if (png.channels === 4) return { width: png.width, height: png.height, data: src };
