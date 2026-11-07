@@ -18,7 +18,7 @@
 		"validate": "node src/runner/validate.ts"
 	},
 	"dependencies": {
-		"@napi-rs/canvas": "1.0.13",
+		"@napi-rs/canvas": "1.1.0",
 		"@resvg/resvg-js": "2.6.2",
 		"@resvg/resvg-wasm": "2.6.2",
 		"@takumi-rs/core": "2.19.0",
