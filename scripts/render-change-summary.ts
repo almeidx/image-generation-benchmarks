@@ -8,11 +8,12 @@
  * Must run *before* baselines are regenerated — once they're overwritten, the
  * outputs match and nothing shows as changed.
  */
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import type { ValidationResultFile } from "../src/types.ts";
-import { resultsDir } from "../src/utils/assets.ts";
+import { resultsDir } from "../src/layout.ts";
+import { readResultFiles } from "../src/results.ts";
+import { runtimeLabel } from "../src/runtime.ts";
 
 const { values } = parseArgs({
 	args: process.argv.slice(2),
@@ -20,33 +21,12 @@ const { values } = parseArgs({
 });
 const outPath = values.out;
 
-async function collectValidationFiles(dir: string): Promise<ValidationResultFile[]> {
-	let entries;
-	try {
-		entries = await readdir(dir, { withFileTypes: true });
-	} catch {
-		return [];
-	}
-	const files: ValidationResultFile[] = [];
-	for (const entry of entries) {
-		if (!entry.isFile() || !entry.name.startsWith("validation-") || !entry.name.endsWith(".json")) {
-			continue;
-		}
-		const data = JSON.parse(await readFile(path.join(dir, entry.name), "utf8")) as Record<string, unknown>;
-		if (data.schemaVersion === 1 && Array.isArray(data.baselines)) {
-			files.push(data as unknown as ValidationResultFile);
-		}
-	}
-	return files;
-}
-
-const validations = await collectValidationFiles(resultsDir);
-const runtimeLabel = (v: ValidationResultFile) => `${v.runtime.name} ${v.runtime.version}`;
+const { validations } = await readResultFiles(resultsDir);
 
 const changed = validations.flatMap((v) =>
-	v.baselines.filter((b) => !b.pass).map((b) => ({ runtime: runtimeLabel(v), ...b })),
+	v.baselines.filter((b) => !b.pass).map((b) => ({ runtime: runtimeLabel(v.runtime), ...b })),
 );
-const missing = validations.flatMap((v) => v.missingBaselines.map((m) => ({ runtime: runtimeLabel(v), ...m })));
+const missing = validations.flatMap((v) => v.missingBaselines.map((m) => ({ runtime: runtimeLabel(v.runtime), ...m })));
 
 const lines: string[] = [];
 lines.push("## 🎨 Baseline regeneration");

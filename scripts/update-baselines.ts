@@ -5,9 +5,9 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { baselinePath, repoRoot } from "../src/layout.ts";
 import { prepare } from "../src/runner/prepare.ts";
-import { baselinesDir } from "../src/utils/assets.ts";
-import { detectRuntime } from "../src/utils/runtime.ts";
+import { detectRuntime } from "../src/runtime.ts";
 
 const runtime = detectRuntime();
 if (runtime.name !== "node" || process.platform !== "linux") {
@@ -19,10 +19,10 @@ if (runtime.name !== "node" || process.platform !== "linux") {
 const prepared = await prepare({ formats: ["png"] });
 
 for (const combo of prepared.combos) {
-	const dir = path.join(baselinesDir, combo.adapter.name);
-	await mkdir(dir, { recursive: true });
-	await writeFile(path.join(dir, `${combo.scenario.name}.png`), combo.output);
-	console.log(`wrote baselines/${combo.adapter.name}/${combo.scenario.name}.png`);
+	const file = baselinePath(combo.adapter, combo.scenario);
+	await mkdir(path.dirname(file), { recursive: true });
+	await writeFile(file, combo.output);
+	console.log(`wrote ${path.relative(repoRoot, file)}`);
 }
 
 for (const [name, info] of Object.entries(prepared.libraries)) {
@@ -30,6 +30,6 @@ for (const [name, info] of Object.entries(prepared.libraries)) {
 		console.warn(`! ${name} not set up: ${info.error}`);
 	}
 }
-for (const entry of prepared.unsupported.filter((u) => u.format === "png")) {
+for (const entry of prepared.unsupported) {
 	console.warn(`! no baseline for ${entry.adapter}/${entry.scenario}: ${entry.reason}`);
 }

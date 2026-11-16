@@ -1,33 +1,26 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { adapters } from "../adapters/index.ts";
+import type { Adapter, RenderOptions, Renderer } from "../adapters/types.ts";
+import { sniffFormat, type OutputFormat } from "../formats.ts";
+import { repoRoot } from "../layout.ts";
+import type { ComboId, LibraryInfo, UnsupportedEntry } from "../results.ts";
 import { scenarios } from "../scenarios/index.ts";
-import type {
-	Adapter,
-	Assets,
-	LibraryInfo,
-	OutputFormat,
-	RenderOptions,
-	Scenario,
-	SetupTimings,
-	UnsupportedEntry,
-} from "../types.ts";
-import { loadAssets, repoRoot } from "../utils/assets.ts";
+import type { AdapterKind, Scenario, ScenarioFor } from "../scenarios/types.ts";
+import { loadAssets } from "./load-assets.ts";
 
 /** Identical encode settings for every library. */
-export const renderOptions: RenderOptions = { quality: 80 };
+const renderOptions: RenderOptions = { quality: 80 };
 
-export interface Combo {
-	adapter: Adapter;
-	scenario: Scenario;
-	format: OutputFormat;
-	/** Output bytes from the preflight render, reusable for validation/gallery. */
+export interface Combo extends ComboId {
+	kind: Adapter["kind"];
+	/** One timed unit of work: render + encode. */
+	render(): Promise<Uint8Array>;
+	/** Output bytes from the preflight render. */
 	output: Uint8Array;
 }
 
 export interface Prepared {
-	assets: Assets;
-	ready: Adapter[];
 	libraries: Record<string, LibraryInfo>;
 	combos: Combo[];
 	unsupported: UnsupportedEntry[];
@@ -40,11 +33,21 @@ async function libraryVersions(): Promise<Record<string, string>> {
 	return pkg.dependencies;
 }
 
+async function timed<T>(run: () => T | Promise<T>): Promise<[T, number]> {
+	const t0 = performance.now();
+	const value = await run();
+	return [value, performance.now() - t0];
+}
+
+function implementing<K extends AdapterKind>(kind: K) {
+	return (scenario: Scenario): scenario is ScenarioFor<K> => scenario[kind] !== undefined;
+}
+
 /**
  * Sets up every adapter (recording cold-start phase timings), then preflights
  * each adapter x scenario x format combination once. Combinations that throw
- * are recorded as unsupported instead of failing the run — feature gaps are
- * findings, not errors.
+ * or encode a different format than requested are recorded as unsupported
+ * instead of failing the run: feature gaps are findings, not errors.
  */
 export async function prepare(filter?: {
 	adapters?: string[];
@@ -54,7 +57,6 @@ export async function prepare(filter?: {
 	const assets = await loadAssets();
 	const versions = await libraryVersions();
 	const libraries: Record<string, LibraryInfo> = {};
-	const ready: Adapter[] = [];
 	const combos: Combo[] = [];
 	const unsupported: UnsupportedEntry[] = [];
 
@@ -63,47 +65,38 @@ export async function prepare(filter?: {
 
 	for (const adapter of selectedAdapters) {
 		const version = versions[adapter.packageName] ?? "unknown";
-		let setup: SetupTimings;
+		const supported = selectedScenarios.filter(implementing(adapter.kind));
+		const first = supported[0];
+		if (!first) continue;
+		let renderer: Renderer<AdapterKind, OutputFormat>;
 		try {
-			const phases = await adapter.setup(assets);
-			// First end-to-end render approximates the remaining cold-start cost
-			// (lazy canvas/font initialization, JIT warm-up, etc).
-			const first = selectedScenarios.find((s) => s.kinds.includes(adapter.kind)) ?? selectedScenarios[0];
-			const t0 = performance.now();
-			if (first) await adapter.render(first, "png", renderOptions);
-			setup = { ...phases, firstRenderMs: performance.now() - t0 };
+			const [library, importMs] = await timed(() => adapter.import());
+			const [withFonts, fontsMs] = await timed(() => library.registerFonts(assets.fonts));
+			const [loaded, assetsMs] = await timed(() => withFonts.loadImages(assets.images));
+			const [, firstRenderMs] = await timed(() => loaded.render(first, "png", renderOptions));
+			renderer = loaded;
+			libraries[adapter.name] = { version, status: "ok", setup: { importMs, fontsMs, assetsMs, firstRenderMs } };
 		} catch (error) {
 			libraries[adapter.name] = { version, status: "unsupported", error: String(error) };
 			continue;
 		}
-		libraries[adapter.name] = { version, status: "ok", setup };
-		ready.push(adapter);
 
-		for (const scenario of selectedScenarios) {
-			if (!scenario.kinds.includes(adapter.kind)) {
-				continue;
-			}
+		for (const scenario of supported) {
 			for (const format of adapter.formats) {
 				if (filter?.formats && !filter.formats.includes(format)) continue;
+				const id = { adapter: adapter.name, scenario: scenario.name, format };
+				const render = () => renderer.render(scenario, format, renderOptions);
 				try {
-					const output = await adapter.render(scenario, format, renderOptions);
-					if (output.length === 0) throw new Error("empty output");
-					combos.push({ adapter, scenario, format, output });
+					const output = await render();
+					const actual = sniffFormat(output);
+					if (actual !== format) throw new Error(`encoder produced ${actual ?? "unrecognized bytes"}, not ${format}`);
+					combos.push({ ...id, kind: adapter.kind, render, output });
 				} catch (error) {
-					unsupported.push({
-						adapter: adapter.name,
-						scenario: scenario.name,
-						format,
-						reason: String(error).split("\n")[0] ?? "unknown",
-					});
+					unsupported.push({ ...id, reason: String(error).split("\n")[0] ?? "unknown" });
 				}
 			}
 		}
 	}
 
-	return { assets, ready, libraries, combos, unsupported };
-}
-
-export function comboKey(adapter: string, scenario: string, format: string): string {
-	return `${adapter} · ${scenario} · ${format}`;
+	return { libraries, combos, unsupported };
 }

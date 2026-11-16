@@ -1,80 +1,60 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import type { Adapter, Assets, ElementAssets, OutputFormat, RenderOptions, Scenario } from "../types.ts";
-import { toDataUri } from "../utils/assets.ts";
+import type { Resvg } from "@resvg/resvg-js";
+import { buildImages } from "../assets.ts";
+import type { Adapter } from "./types.ts";
 
-type SatoriFn = typeof import("satori").default;
-type ResvgCtor = typeof import("@resvg/resvg-js").Resvg;
+type ResvgCtor = typeof Resvg;
 
-interface SatoriFont {
-	name: string;
-	data: ArrayBuffer | Buffer;
-	weight: 400 | 700;
-	style: "normal";
+async function importResvg(): Promise<ResvgCtor> {
+	// Native resvg first; the wasm build covers runtimes without native addon support.
+	try {
+		return (await import("@resvg/resvg-js")).Resvg;
+	} catch {
+		const wasm = await import("@resvg/resvg-wasm");
+		const require = createRequire(import.meta.url);
+		await wasm.initWasm(await readFile(require.resolve("@resvg/resvg-wasm/index_bg.wasm")));
+		return wasm.Resvg as unknown as ResvgCtor;
+	}
 }
 
-let satori: SatoriFn | undefined;
-let Resvg: ResvgCtor | undefined;
-let fonts: SatoriFont[] = [];
-let elementAssets: ElementAssets | undefined;
-
-export const satoriAdapter: Adapter = {
+export const satoriAdapter: Adapter<"declarative", "png" | "svg"> = {
 	name: "satori",
 	kind: "declarative",
 	packageName: "satori",
 	formats: ["png", "svg"],
 
-	async setup(assets: Assets) {
-		const t0 = performance.now();
-		satori = (await import("satori")).default;
-		// Native resvg first; wasm build as a portability fallback.
-		try {
-			Resvg = (await import("@resvg/resvg-js")).Resvg;
-		} catch {
-			const wasm = await import("@resvg/resvg-wasm");
-			const require = createRequire(import.meta.url);
-			await wasm.initWasm(await readFile(require.resolve("@resvg/resvg-wasm/index_bg.wasm")));
-			Resvg = wasm.Resvg as unknown as ResvgCtor;
-		}
-		const t1 = performance.now();
-		fonts = [
-			{
-				name: "Inter",
-				data: Buffer.from(assets.fonts.sansRegular.data),
-				weight: 400,
-				style: "normal",
+	async import() {
+		const satori = (await import("satori")).default;
+		const Resvg = await importResvg();
+		return {
+			registerFonts(registered) {
+				const fonts = registered.map((font) => ({
+					name: font.family,
+					data: Buffer.from(font.data),
+					weight: font.weight,
+					style: "normal" as const,
+				}));
+				return {
+					async loadImages(pngs) {
+						const srcs = await buildImages(
+							(name) => `data:image/png;base64,${Buffer.from(pngs[name]).toString("base64")}`,
+						);
+						return {
+							async render(scenario, format) {
+								const svg = await satori(scenario.declarative(srcs) as never, {
+									width: scenario.width,
+									height: scenario.height,
+									fonts,
+								});
+								if (format === "svg") return new TextEncoder().encode(svg);
+								// Satori outputs text as paths, so rasterization needs no font config.
+								return new Resvg(svg, { fitTo: { mode: "width", value: scenario.width } }).render().asPng();
+							},
+						};
+					},
+				};
 			},
-			{
-				name: "Inter",
-				data: Buffer.from(assets.fonts.sansBold.data),
-				weight: 700,
-				style: "normal",
-			},
-		];
-		const t2 = performance.now();
-		elementAssets = {
-			photoSrc: toDataUri(assets.images.photo.data, "image/png"),
-			avatarSrc: toDataUri(assets.images.avatar.data, "image/png"),
 		};
-		const t3 = performance.now();
-		return { importMs: t1 - t0, fontsMs: t2 - t1, assetsMs: t3 - t2 };
-	},
-
-	async render(scenario: Scenario, format: OutputFormat, _options: RenderOptions) {
-		const element = scenario.element!(elementAssets!);
-		const svg = await satori!(element as never, {
-			width: scenario.width,
-			height: scenario.height,
-			fonts,
-		});
-		if (format === "svg") return new TextEncoder().encode(svg);
-		if (format === "png") {
-			// Satori outputs text as paths, so rasterization needs no font config.
-			const rendered = new Resvg!(svg, {
-				fitTo: { mode: "width", value: scenario.width },
-			}).render();
-			return rendered.asPng();
-		}
-		throw new Error(`format not supported: ${format}`);
 	},
 };

@@ -13,13 +13,11 @@ on:
   workflow_dispatch:
     inputs:
       samples:
-        description: "Timed samples per benchmark (higher = steadier reference)"
+        description: "Timed samples per benchmark (blank = the perf:baseline default)"
         required: false
-        default: "100"
       warmup:
-        description: "Warmup iterations discarded before timing"
+        description: "Warmup iterations discarded before timing (blank = the perf:baseline default)"
         required: false
-        default: "10"
   # Monthly safety net so the drift reference never silently goes stale. Opens a
   # PR you review and merge — never lands unreviewed.
   schedule:
@@ -38,23 +36,22 @@ jobs:
 
       - uses: pnpm/action-setup@v6.1.1
 
-      # Same Node version the PR benchmark job uses, so the committed baseline
-      # and the head numbers it's compared against are measured identically.
+      # .node-version is shared with the PR benchmark job, so the committed
+      # baseline and the head numbers it's compared against are measured identically.
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24.22.3"
+          node-version-file: .node-version
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # inputs.* are empty on the scheduled run, so fall back to the defaults.
+      # A repeated flag overrides the script's own; inputs are empty on the scheduled run.
       - name: Measure baseline
-        run: |
-          node src/runner/bench.ts --quick \
-            --samples "${{ inputs.samples || '100' }}" \
-            --warmup "${{ inputs.warmup || '10' }}" \
-            --out baselines/perf.json
+        run: >-
+          pnpm perf:baseline
+          ${{ inputs.samples && format('--samples "{0}"', inputs.samples) || '' }}
+          ${{ inputs.warmup && format('--warmup "{0}"', inputs.warmup) || '' }}
 
       - name: Open baseline PR
         uses: peter-evans/create-pull-request@v8.1.3
@@ -70,8 +67,8 @@ jobs:
           labels: performance
           body: |
             Regenerated `baselines/perf.json` on a GitHub-hosted `ubuntu-latest`
-            runner (Node 24.18.0, quick mode, ${{ inputs.samples || '100' }} samples)
-            so it matches the hardware class the PR benchmark comment compares against.
+            runner (quick mode) so it matches the hardware class the PR benchmark
+            comment compares against.
 
             This file is the **fixed reference** the PR drift check measures head
             against — it only moves when this workflow re-blesses it. Review the

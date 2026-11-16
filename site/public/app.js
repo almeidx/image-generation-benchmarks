@@ -6,8 +6,23 @@ const REPO_URL = "https://github.com/almeidx/image-generation-benchmarks";
 const $ = (id) => document.getElementById(id);
 const ms = (ns) => ns / 1e6;
 const fmtMs = (ns) => (ms(ns) >= 100 ? ms(ns).toFixed(0) : ms(ns).toPrecision(3)) + " ms";
+const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+function barOptions(x, stacked = false) {
+	const grid = { color: cssVar("--border") };
+	const labels = { color: cssVar("--text") };
+	return {
+		indexAxis: "y",
+		scales: {
+			x: { ...x, stacked, ticks: { color: cssVar("--muted") }, grid },
+			y: { stacked, ticks: labels, grid },
+		},
+		plugins: { legend: { labels } },
+	};
+}
 
 let data;
+let adapters;
 let benchChart;
 let coldChart;
 
@@ -20,6 +35,7 @@ async function init() {
 		return;
 	}
 	data = await res.json();
+	adapters = [...new Set(data.runs.flatMap((r) => Object.keys(r.libraries)))];
 	$("repo-link").href = REPO_URL;
 	$("meta").textContent =
 		`Generated ${new Date(data.generated).toLocaleString()} · ` +
@@ -45,7 +61,6 @@ async function init() {
 }
 
 function benchRows(scenario, format) {
-	const adapters = [...new Set(data.runs.flatMap((r) => Object.keys(r.libraries)))];
 	return adapters
 		.map((adapter) => ({
 			adapter,
@@ -71,19 +86,7 @@ function renderBench() {
 	benchChart = new Chart($("bench-chart"), {
 		type: "bar",
 		data: { labels: rows.map((r) => r.adapter), datasets },
-		options: {
-			indexAxis: "y",
-			scales: {
-				x: {
-					title: { display: true, text: "mean ms (log scale)" },
-					type: "logarithmic",
-					ticks: { color: "#94a3b8" },
-					grid: { color: "#334155" },
-				},
-				y: { ticks: { color: "#e2e8f0" }, grid: { color: "#334155" } },
-			},
-			plugins: { legend: { labels: { color: "#e2e8f0" } } },
-		},
+		options: barOptions({ title: { display: true, text: "mean ms (log scale)" }, type: "logarithmic" }),
 	});
 
 	const best = data.runs.map((_, i) => {
@@ -112,7 +115,7 @@ function renderBench() {
 
 function renderColdStart() {
 	const run = data.runs.find((r) => runtimeLabel(r) === $("coldstart-runtime").value) ?? data.runs[0];
-	const adapters = Object.entries(run.libraries).filter(([, info]) => info.setup);
+	const withSetup = Object.entries(run.libraries).filter(([, info]) => info.setup);
 	const phases = [
 		["import", (s) => s.importMs],
 		["fonts", (s) => s.fontsMs],
@@ -123,31 +126,18 @@ function renderColdStart() {
 	coldChart = new Chart($("coldstart-chart"), {
 		type: "bar",
 		data: {
-			labels: adapters.map(([name]) => name),
+			labels: withSetup.map(([name]) => name),
 			datasets: phases.map(([label, pick], i) => ({
 				label,
-				data: adapters.map(([, info]) => pick(info.setup)),
+				data: withSetup.map(([, info]) => pick(info.setup)),
 				backgroundColor: PALETTE[i % PALETTE.length],
 			})),
 		},
-		options: {
-			indexAxis: "y",
-			scales: {
-				x: {
-					stacked: true,
-					title: { display: true, text: "ms" },
-					ticks: { color: "#94a3b8" },
-					grid: { color: "#334155" },
-				},
-				y: { stacked: true, ticks: { color: "#e2e8f0" }, grid: { color: "#334155" } },
-			},
-			plugins: { legend: { labels: { color: "#e2e8f0" } } },
-		},
+		options: barOptions({ title: { display: true, text: "ms" } }, true),
 	});
 }
 
 function renderSupport() {
-	const adapters = [...new Set(data.runs.flatMap((r) => Object.keys(r.libraries)))];
 	$("support-table").innerHTML = `
     <table>
       <thead><tr><th>Library</th><th>Version</th>${data.runs.map((r) => `<th>${runtimeLabel(r)}</th>`).join("")}</tr></thead>
@@ -167,7 +157,6 @@ function renderSupport() {
 }
 
 function renderGallery(scenario) {
-	const adapters = [...new Set(data.runs.flatMap((r) => Object.keys(r.libraries)))];
 	$("gallery").innerHTML = adapters
 		.map(
 			(adapter) => `

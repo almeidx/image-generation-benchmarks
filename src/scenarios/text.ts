@@ -1,5 +1,6 @@
-import type { ElementChild, Scenario } from "../types.ts";
+import { FONT_FAMILY } from "../assets.ts";
 import { baselineY, el, fillTextCentered, fontString } from "./helpers.ts";
+import type { ElementChild, Scenario } from "./types.ts";
 
 const BODY_LINES = [
 	"Each library renders this exact document from the same inputs:",
@@ -8,15 +9,13 @@ const BODY_LINES = [
 	"or hyphenation can skew the comparison between candidates.",
 ];
 
-/** Typography: weights, sizes, alignment, multi-line body text. */
 export const text: Scenario = {
 	name: "text",
 	description: "Headings, body copy, mixed weights and sizes, centered and left-aligned",
 	width: 800,
 	height: 600,
-	kinds: ["canvas", "declarative"],
 
-	drawCanvas(ctx) {
+	canvas(ctx) {
 		ctx.fillStyle = "#ffffff";
 		ctx.fillRect(0, 0, 800, 600);
 
@@ -43,7 +42,7 @@ export const text: Scenario = {
 		fillTextCentered(ctx, "PNG · JPEG · WEBP", 400, baselineY(470, 72));
 	},
 
-	element() {
+	declarative() {
 		const centered = (top: number, fontSize: number, fontWeight: number, color: string, content: string) =>
 			el(
 				"div",
@@ -89,7 +88,7 @@ export const text: Scenario = {
 					display: "flex",
 					position: "relative",
 					backgroundColor: "#ffffff",
-					fontFamily: "Inter",
+					fontFamily: FONT_FAMILY,
 				},
 			},
 			centered(70, 56, 700, "#0f172a", "The quick brown fox"),

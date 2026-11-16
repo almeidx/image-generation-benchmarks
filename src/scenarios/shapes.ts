@@ -1,19 +1,14 @@
-import type { Scenario } from "../types.ts";
 import { el, roundedRectPath } from "./helpers.ts";
+import type { Scenario } from "./types.ts";
 
-/**
- * Basic vector primitives: solid fills, rounded corners, circles, translucent
- * overlaps, and a thick border. Translucency uses rgba colors rather than
- * globalAlpha for the widest library support.
- */
+/** Translucency uses rgba colors rather than globalAlpha for the widest library support. */
 export const shapes: Scenario = {
 	name: "shapes",
 	description: "Rectangles, rounded rectangles, circles, translucent overlaps, borders",
 	width: 800,
 	height: 600,
-	kinds: ["canvas", "declarative"],
 
-	drawCanvas(ctx) {
+	canvas(ctx) {
 		ctx.fillStyle = "#f8fafc";
 		ctx.fillRect(0, 0, 800, 600);
 
@@ -50,7 +45,7 @@ export const shapes: Scenario = {
 		ctx.strokeRect(564, 424, 192, 132);
 	},
 
-	element() {
+	declarative() {
 		const abs = (left: number, top: number, width: number, height: number, style: Record<string, unknown>) =>
 			el("div", {
 				style: { position: "absolute", display: "flex", left, top, width, height, ...style },
@@ -76,7 +71,7 @@ export const shapes: Scenario = {
 			abs(390, 420, 140, 140, { backgroundColor: "rgba(99, 102, 241, 0.6)", borderRadius: 9999 }),
 			// Satori >=0.46 defaults to content-box sizing (borders paint outside),
 			// unlike the canvas adapters that stroke inside the shape — border-box
-			// keeps the CSS box 200x140 like the canvas drawCanvas branch.
+			// keeps the CSS box 200x140 like the canvas implementation.
 			abs(560, 420, 200, 140, { boxSizing: "border-box", border: "8px solid #0f172a" }),
 		);
 	},

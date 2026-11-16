@@ -1,17 +1,15 @@
-import type { Scenario } from "../types.ts";
 import { el, roundedRectPath } from "./helpers.ts";
+import type { Scenario } from "./types.ts";
 
-/** Raster compositing: full-bleed photo, translucent overlay, circular avatar clip. */
 export const imageCompositing: Scenario = {
 	name: "image-compositing",
 	description: "Photo scaled to cover, translucent overlay, circle-clipped avatar with ring",
 	width: 800,
 	height: 600,
-	kinds: ["canvas", "declarative"],
 
-	drawCanvas(ctx, assets) {
+	canvas(ctx, images) {
 		// photo.png is 1600x1200 (same 4:3 aspect), so cover == plain scale.
-		ctx.drawImage(assets.photo, 0, 0, 800, 600);
+		ctx.drawImage(images.photo, 0, 0, 800, 600);
 
 		ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
 		ctx.fillRect(0, 420, 800, 180);
@@ -20,7 +18,7 @@ export const imageCompositing: Scenario = {
 		ctx.beginPath();
 		ctx.arc(120, 510, 64, 0, Math.PI * 2);
 		ctx.clip();
-		ctx.drawImage(assets.avatar, 56, 446, 128, 128);
+		ctx.drawImage(images.avatar, 56, 446, 128, 128);
 		ctx.restore();
 
 		ctx.strokeStyle = "#f8fafc";
@@ -34,14 +32,14 @@ export const imageCompositing: Scenario = {
 		ctx.fill();
 	},
 
-	element(assets) {
+	declarative(images) {
 		return el(
 			"div",
 			{
 				style: { width: "100%", height: "100%", display: "flex", position: "relative" },
 			},
 			el("img", {
-				src: assets.photoSrc,
+				src: images.photo,
 				width: 800,
 				height: 600,
 				style: {
@@ -65,7 +63,7 @@ export const imageCompositing: Scenario = {
 				},
 			}),
 			el("img", {
-				src: assets.avatarSrc,
+				src: images.avatar,
 				width: 128,
 				height: 128,
 				style: {

@@ -14,13 +14,13 @@ most portable across runtimes, or fewest native dependencies.
 | [@napi-rs/canvas](https://github.com/Brooooooklyn/canvas)                                   | Canvas API            | Skia (native, N-API) | png, jpeg, webp, avif |
 | [skia-canvas](https://github.com/samizdatco/skia-canvas)                                    | Canvas API            | Skia (native, N-API) | png, jpeg, webp, svg  |
 | [canvas](https://github.com/Automattic/node-canvas) (node-canvas)                           | Canvas API            | Cairo (native)       | png, jpeg, svg        |
-| [canvaskit-wasm](https://www.npmjs.com/package/canvaskit-wasm)                              | Canvas API            | Skia (WebAssembly)   | png, webp\*           |
+| [canvaskit-wasm](https://www.npmjs.com/package/canvaskit-wasm)                              | Canvas API            | Skia (WebAssembly)   | png\*                 |
 | [pureimage](https://github.com/joshmarinacci/node-pureimage)                                | Canvas API            | Pure JavaScript      | png, jpeg             |
 | [takumi](https://github.com/kane50613/takumi) (@takumi-rs/core)                             | Declarative (JSX/CSS) | Rust (N-API)         | png, jpeg, webp       |
 | [satori](https://github.com/vercel/satori) + [resvg-js](https://github.com/yisibl/resvg-js) | Declarative (JSX/CSS) | Yoga + resvg         | png, svg              |
 
-\* canvaskit-wasm's prebuilt module silently falls back to PNG for codecs it doesn't include;
-the harness probes at setup and only benchmarks formats that genuinely encode.
+\* canvaskit-wasm's canvas emulation can only encode png and jpeg, and the prebuilt module ships
+without the jpeg encoder; that gap is reported as unsupported rather than benchmarked.
 
 `sharp` was considered and deliberately excluded — it's an image _processing_ library, a
 different category from drawing/layout engines.
@@ -28,7 +28,7 @@ different category from drawing/layout engines.
 ## How fairness is enforced
 
 - **Same inputs everywhere.** Every scenario is defined once, with both an imperative
-  `drawCanvas(ctx)` implementation and a declarative element tree (consumed directly by satori,
+  `canvas(ctx)` implementation and a declarative element tree (consumed directly by satori,
   converted via `fromJsx` by takumi — that conversion is timed, because it's part of takumi's
   real pipeline). Identical fonts (committed Inter TTFs), identical sample images, identical
   coordinates and colors.
@@ -40,8 +40,9 @@ different category from drawing/layout engines.
   its own right (serverless!) — and never mixed into the steady-state numbers.
 - **Identical encode settings** (quality 80) wherever the format takes a quality parameter.
 - **Feature gaps are findings, not crashes.** Every adapter × scenario × format combination is
-  preflighted; failures are recorded as `unsupported` and reported. A library that can't load
-  on a runtime (e.g. native modules on Deno without `--allow-scripts`) is reported the same way.
+  preflighted; failures, and outputs whose bytes aren't the requested format, are recorded as
+  `unsupported` and reported. A library that can't load on a runtime (e.g. native modules on
+  Deno without `--allow-scripts`) is reported the same way.
 - **Pinned versions** (Renovate keeps them fresh in grouped PRs whose benchmark impact is
   posted as a PR comment).
 
@@ -132,14 +133,16 @@ Useful flags: `--adapters napi-rs-canvas,takumi`, `--scenarios og-card`, `--out 
 
 ## Adding a library or scenario
 
-- **Library:** implement the `Adapter` interface in `src/adapters/<name>.ts` (see
-  `src/types.ts`), register it in `src/adapters/index.ts`, add the pinned dependency, run
-  `pnpm baselines:update`, and add the package to the `candidate libraries` group in
-  `.github/renovate.json`.
-- **Scenario:** add `src/scenarios/<name>.ts` exporting a `Scenario` with `drawCanvas` and/or
-  `element`, register it in `src/scenarios/index.ts`, and regenerate baselines. Keep both
+- **Library:** add `src/adapters/<name>.ts` exporting an `Adapter` (`src/adapters/types.ts`);
+  canvas libraries only supply fonts, image decoding, and surfaces to `defineCanvasAdapter`
+  (`src/adapters/canvas.ts`). Register it in `src/adapters/index.ts`, add the pinned
+  dependency, run `pnpm baselines:update`, and add the package to the `candidate libraries`
+  group in `.github/renovate.jsonc`.
+- **Scenario:** add `src/scenarios/<name>.ts` exporting a `Scenario` with a `canvas` and/or
+  `declarative` implementation (an adapter runs a scenario iff it implements the adapter's
+  kind), register it in `src/scenarios/index.ts`, and regenerate baselines. Keep both
   implementations visually equivalent and avoid APIs outside the `Canvas2D` surface in
-  `src/types.ts`.
+  `src/scenarios/types.ts`.
 
 ## License
 

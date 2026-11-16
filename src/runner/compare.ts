@@ -22,7 +22,8 @@
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
-import type { BenchResultFile, BenchStats } from "../types.ts";
+import { comboName, formatMs, isMissingFile, type BenchResultFile, type BenchStats } from "../results.ts";
+import { runtimeLabel } from "../runtime.ts";
 
 /** base→head: minimum relative change worth flagging at all. */
 const FLAG_THRESHOLD = 0.15;
@@ -55,7 +56,7 @@ async function load(file: string): Promise<BenchResultFile | undefined> {
 		// A missing file is an expected path — pr-bench.yml runs head-only when the
 		// base commit predates the runner. Anything other than "not found" (a
 		// corrupt or unreadable file) is a real problem worth surfacing.
-		if ((err as { code?: string }).code !== "ENOENT") {
+		if (!isMissingFile(err)) {
 			console.error(`warning: could not read ${file}:`, err);
 		}
 		return undefined;
@@ -80,13 +81,10 @@ const lines: string[] = [];
 lines.push("## 📊 Benchmark comparison");
 lines.push("");
 lines.push(
-	`Runtime: ${head.runtime.name} ${head.runtime.version} · ${head.platform.cpu}${head.quick ? " · quick mode (indicative numbers)" : ""}`,
+	`Runtime: ${runtimeLabel(head.runtime)} · ${head.platform.cpu}${head.quick ? " · quick mode (indicative numbers)" : ""}`,
 );
 lines.push("");
 
-const key = (b: { adapter: string; scenario: string; format: string }) => `${b.adapter}|${b.scenario}|${b.format}`;
-const name = (b: { adapter: string; scenario: string; format: string }) => `${b.adapter} · ${b.scenario} · ${b.format}`;
-const fmtMs = (ns: number) => `${(ns / 1e6).toPrecision(3)} ms`;
 const pctOf = (delta: number) => `${delta > 0 ? "+" : ""}${(delta * 100).toFixed(1)}%`;
 
 /**
@@ -102,11 +100,10 @@ if (!base) {
 	lines.push("| Benchmark | Median |");
 	lines.push("| --- | --- |");
 	for (const b of head.benchmarks) {
-		lines.push(`| ${name(b)} | ${fmtMs(b.stats.p50Ns)} |`);
+		lines.push(`| ${comboName(b)} | ${formatMs(b.stats.p50Ns)} |`);
 	}
 	lines.push("");
 } else {
-	// Library version changes.
 	const versionChanges: string[] = [];
 	for (const [lib, info] of Object.entries(head.libraries)) {
 		const baseInfo = base.libraries[lib];
@@ -120,8 +117,8 @@ if (!base) {
 		lines.push("");
 	}
 
-	const baseMap = new Map(base.benchmarks.map((b) => [key(b), b]));
-	const headMap = new Map(head.benchmarks.map((b) => [key(b), b]));
+	const baseMap = new Map(base.benchmarks.map((b) => [comboName(b), b]));
+	const headMap = new Map(head.benchmarks.map((b) => [comboName(b), b]));
 
 	interface Row {
 		name: string;
@@ -133,12 +130,12 @@ if (!base) {
 	}
 	const rows: Row[] = [];
 	for (const b of head.benchmarks) {
-		const baseRow = baseMap.get(key(b));
+		const baseRow = baseMap.get(comboName(b));
 		// Skip degenerate medians — a non-positive denominator makes the ratio
 		// non-finite and poisons formatting/sorting/filtering downstream.
 		if (!baseRow || baseRow.stats.p50Ns <= 0) continue;
 		rows.push({
-			name: name(b),
+			name: comboName(b),
 			baseNs: baseRow.stats.p50Ns,
 			headNs: b.stats.p50Ns,
 			delta: (b.stats.p50Ns - baseRow.stats.p50Ns) / baseRow.stats.p50Ns,
@@ -152,8 +149,8 @@ if (!base) {
 	const flagged = rows
 		.filter((r) => Math.abs(r.delta) >= Math.max(FLAG_THRESHOLD, r.noiseBand))
 		.toSorted((a, b) => a.delta - b.delta);
-	const added = head.benchmarks.filter((b) => !baseMap.has(key(b)));
-	const removed = base.benchmarks.filter((b) => !headMap.has(key(b)));
+	const added = head.benchmarks.filter((b) => !baseMap.has(comboName(b)));
+	const removed = base.benchmarks.filter((b) => !headMap.has(comboName(b)));
 
 	lines.push("### This PR (base → head, same runner)");
 	lines.push("");
@@ -161,23 +158,23 @@ if (!base) {
 		lines.push(`No benchmark moved beyond ±${FLAG_THRESHOLD * 100}% *and* its own quick-mode noise.`);
 		lines.push("");
 	} else {
-		lines.push("**Interesting changes** (beyond ±15% and the benchmark's own measured noise):");
+		lines.push(`**Interesting changes** (beyond ±${FLAG_THRESHOLD * 100}% and the benchmark's own measured noise):`);
 		lines.push("");
 		lines.push("| Benchmark | Base | Head | Δ (median) |");
 		lines.push("| --- | --- | --- | --- |");
 		for (const r of flagged) {
 			const icon = r.delta < 0 ? "🚀" : "⚠️";
-			lines.push(`| ${r.name} | ${fmtMs(r.baseNs)} | ${fmtMs(r.headNs)} | ${icon} ${pctOf(r.delta)} |`);
+			lines.push(`| ${r.name} | ${formatMs(r.baseNs)} | ${formatMs(r.headNs)} | ${icon} ${pctOf(r.delta)} |`);
 		}
 		lines.push("");
 	}
 
 	if (added.length > 0) {
-		lines.push(`**Newly supported:** ${added.map(name).join(", ")}`);
+		lines.push(`**Newly supported:** ${added.map(comboName).join(", ")}`);
 		lines.push("");
 	}
 	if (removed.length > 0) {
-		lines.push(`**No longer supported:** ${removed.map(name).join(", ")}`);
+		lines.push(`**No longer supported:** ${removed.map(comboName).join(", ")}`);
 		lines.push("");
 	}
 
@@ -186,7 +183,7 @@ if (!base) {
 	lines.push("| Benchmark | Base | Head | Δ |");
 	lines.push("| --- | --- | --- | --- |");
 	for (const r of rows.toSorted((a, b) => a.name.localeCompare(b.name))) {
-		lines.push(`| ${r.name} | ${fmtMs(r.baseNs)} | ${fmtMs(r.headNs)} | ${pctOf(r.delta)} |`);
+		lines.push(`| ${r.name} | ${formatMs(r.baseNs)} | ${formatMs(r.headNs)} | ${pctOf(r.delta)} |`);
 	}
 	lines.push("");
 	lines.push("</details>");
@@ -197,7 +194,7 @@ if (!base) {
 // slow regressions that accumulate across many merges, each individually below
 // the A/B threshold, which the immediate-parent comparison can never see.
 if (baseline) {
-	const baselineMap = new Map(baseline.benchmarks.map((b) => [key(b), b]));
+	const baselineMap = new Map(baseline.benchmarks.map((b) => [comboName(b), b]));
 	interface Drift {
 		name: string;
 		refNs: number;
@@ -206,12 +203,12 @@ if (baseline) {
 	}
 	const drifts: Drift[] = [];
 	for (const b of head.benchmarks) {
-		const ref = baselineMap.get(key(b));
+		const ref = baselineMap.get(comboName(b));
 		// Skip a non-positive baseline median: the ratio would be non-finite.
 		if (!ref || ref.stats.p50Ns <= 0) continue;
 		const delta = (b.stats.p50Ns - ref.stats.p50Ns) / ref.stats.p50Ns;
 		if (Math.abs(delta) >= DRIFT_THRESHOLD) {
-			drifts.push({ name: name(b), refNs: ref.stats.p50Ns, headNs: b.stats.p50Ns, delta });
+			drifts.push({ name: comboName(b), refNs: ref.stats.p50Ns, headNs: b.stats.p50Ns, delta });
 		}
 	}
 	drifts.sort((a, b) => b.delta - a.delta);
@@ -229,7 +226,7 @@ if (baseline) {
 		lines.push("| --- | --- | --- | --- |");
 		for (const d of drifts) {
 			const icon = d.delta < 0 ? "🚀" : "⚠️";
-			lines.push(`| ${d.name} | ${fmtMs(d.refNs)} | ${fmtMs(d.headNs)} | ${icon} ${pctOf(d.delta)} |`);
+			lines.push(`| ${d.name} | ${formatMs(d.refNs)} | ${formatMs(d.headNs)} | ${icon} ${pctOf(d.delta)} |`);
 		}
 	}
 	lines.push("");

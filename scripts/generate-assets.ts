@@ -5,11 +5,16 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createCanvas } from "@napi-rs/canvas";
+import type { ImageName } from "../src/assets.ts";
+import { imagePath, repoRoot } from "../src/layout.ts";
 import { seededRandom } from "../src/scenarios/helpers.ts";
-import { assetsDir } from "../src/utils/assets.ts";
 
-const imageDir = path.join(assetsDir, "images");
-await mkdir(imageDir, { recursive: true });
+async function writeImage(name: ImageName, png: Uint8Array): Promise<void> {
+	const file = imagePath(name);
+	await mkdir(path.dirname(file), { recursive: true });
+	await writeFile(file, png);
+	console.log(`wrote ${path.relative(repoRoot, file)}`);
+}
 
 // photo.png — 1600x1200 "landscape": sky gradient, sun, hills, scattered stars.
 {
@@ -60,8 +65,7 @@ await mkdir(imageDir, { recursive: true });
 	hill(980, 70, "#1e1b4b");
 	hill(1080, 50, "#0f172a");
 
-	await writeFile(path.join(imageDir, "photo.png"), await canvas.encode("png"));
-	console.log("wrote assets/images/photo.png");
+	await writeImage("photo", await canvas.encode("png"));
 }
 
 // avatar.png — 256x256: gradient disc with initials.
@@ -86,6 +90,5 @@ await mkdir(imageDir, { recursive: true });
 	ctx.textBaseline = "middle";
 	ctx.fillText("IB", 128, 138);
 
-	await writeFile(path.join(imageDir, "avatar.png"), await canvas.encode("png"));
-	console.log("wrote assets/images/avatar.png");
+	await writeImage("avatar", await canvas.encode("png"));
 }

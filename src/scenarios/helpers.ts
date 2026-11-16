@@ -1,9 +1,6 @@
-import type { Canvas2D, ElementChild, ElementLike } from "../types.ts";
+import { FONT_FAMILY, type FontWeight } from "../assets.ts";
+import type { Canvas2D, ElementChild, ElementLike } from "./types.ts";
 
-/**
- * Builds a React-element-like plain object. Satori consumes these directly,
- * takumi converts them via fromJsx — no JSX transform required.
- */
 export function el(type: string, props: Record<string, unknown>, ...children: ElementChild[]): ElementLike {
 	const style = (props.style ?? {}) as Record<string, unknown>;
 	return {
@@ -66,7 +63,7 @@ export function seededRandom(seed: number): () => number {
 	};
 }
 
-/** Canvas font string used by scenarios; adapters may translate it. */
-export function fontString(sizePx: number, weight: 400 | 700): string {
-	return `${weight === 700 ? "bold " : ""}${sizePx}px Inter`;
+/** Canvas font shorthand used by scenarios; adapters may translate it. */
+export function fontString(sizePx: number, weight: FontWeight): string {
+	return `${weight === 700 ? "bold " : ""}${sizePx}px ${FONT_FAMILY}`;
 }

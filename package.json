@@ -13,6 +13,7 @@
 		"fmt": "oxlint --fix && oxfmt",
 		"fmt:check": "oxfmt --check",
 		"lint": "oxlint && oxfmt --check",
+		"perf:baseline": "node src/runner/bench.ts --quick --samples 100 --warmup 10 --out baselines/perf.json",
 		"report": "node src/runner/report.ts",
 		"typecheck": "tsc --noEmit",
 		"validate": "node src/runner/validate.ts"

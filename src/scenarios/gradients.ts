@@ -1,15 +1,13 @@
-import type { Scenario } from "../types.ts";
 import { el, roundedRectPath } from "./helpers.ts";
+import type { Scenario } from "./types.ts";
 
-/** Linear and radial gradient fills, full-bleed and inside rounded shapes. */
 export const gradients: Scenario = {
 	name: "gradients",
 	description: "Linear gradient background, gradient cards, radial gradient orb",
 	width: 800,
 	height: 600,
-	kinds: ["canvas", "declarative"],
 
-	drawCanvas(ctx) {
+	canvas(ctx) {
 		const bg = ctx.createLinearGradient(0, 0, 800, 600);
 		bg.addColorStop(0, "#0f172a");
 		bg.addColorStop(0.5, "#312e81");
@@ -40,7 +38,7 @@ export const gradients: Scenario = {
 		ctx.fill();
 	},
 
-	element() {
+	declarative() {
 		return el(
 			"div",
 			{

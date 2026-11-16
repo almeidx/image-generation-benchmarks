@@ -1,32 +1,21 @@
 import { PassThrough, Readable } from "node:stream";
-import type { Adapter, Assets, Canvas2D, CanvasAssets, OutputFormat, RenderOptions, Scenario } from "../types.ts";
-
-interface PureBitmap {
-	getContext(kind: "2d"): Canvas2D;
-}
-
-let mod: typeof import("pureimage") | undefined;
-const bitmaps = new Map<string, { bitmap: PureBitmap; ctx: Canvas2D }>();
-let images: CanvasAssets | undefined;
-
-const FONT_RE = /^(bold )?(\d+(?:\.\d+)?)px Inter$/;
+import type { Canvas2D } from "../scenarios/types.ts";
+import { defineCanvasAdapter } from "./canvas.ts";
 
 /**
  * pureimage matches fonts by exact registered name and does not parse weight
- * tokens from the font shorthand, so bold is registered as its own family
- * ("Inter Bold") and this proxy rewrites scenario font strings accordingly.
+ * tokens from the font shorthand, so each weight is registered as its own
+ * family and scenario font strings are rewritten to match.
  */
-function shimFont(ctx: Canvas2D): Canvas2D {
+const registeredName = (family: string, bold: boolean) => (bold ? `${family} Bold` : family);
+
+const FONT_RE = /^(bold )?(\d+(?:\.\d+)?)px (.+)$/;
+
+function rewriteFonts(ctx: Canvas2D): Canvas2D {
 	return new Proxy(ctx as unknown as Record<string | symbol, unknown>, {
 		set(target, prop, value) {
-			if (prop === "font" && typeof value === "string") {
-				const m = FONT_RE.exec(value);
-				if (m) {
-					target.font = `${m[2]}px '${m[1] ? "Inter Bold" : "Inter"}'`;
-					return true;
-				}
-			}
-			target[prop] = value;
+			const m = prop === "font" && typeof value === "string" ? FONT_RE.exec(value) : null;
+			target[prop] = m ? `${m[2]}px '${registeredName(m[3]!, Boolean(m[1]))}'` : value;
 			return true;
 		},
 		get(target, prop) {
@@ -34,6 +23,22 @@ function shimFont(ctx: Canvas2D): Canvas2D {
 			return typeof value === "function" ? (value as (...a: unknown[]) => unknown).bind(target) : value;
 		},
 	}) as unknown as Canvas2D;
+}
+
+/**
+ * pureimage's rasterizer reports degenerate curves through console.warn
+ * ("can't project the same paths") and console.log ("same points!"), hundreds
+ * of lines per render, which floods CI logs.
+ */
+function withoutRasterizerNoise(run: () => void): void {
+	const { log, warn } = console;
+	console.log = console.warn = () => {};
+	try {
+		run();
+	} finally {
+		console.log = log;
+		console.warn = warn;
+	}
 }
 
 async function collectStream(write: (stream: PassThrough) => Promise<unknown>): Promise<Uint8Array> {
@@ -44,53 +49,30 @@ async function collectStream(write: (stream: PassThrough) => Promise<unknown>): 
 	return Uint8Array.from(Buffer.concat(chunks));
 }
 
-export const pureimageAdapter: Adapter = {
+export const pureimageAdapter = defineCanvasAdapter({
 	name: "pureimage",
-	kind: "canvas",
 	packageName: "pureimage",
 	formats: ["png", "jpeg"],
 
-	async setup(assets: Assets) {
-		const t0 = performance.now();
-		mod = await import("pureimage");
-		const t1 = performance.now();
-		await mod.registerFont(assets.fonts.sansRegular.path, "Inter").load();
-		await mod.registerFont(assets.fonts.sansBold.path, "Inter Bold").load();
-		const t2 = performance.now();
-		const [photo, avatar] = await Promise.all([
-			mod.decodePNGFromStream(Readable.from(Buffer.from(assets.images.photo.data))),
-			mod.decodePNGFromStream(Readable.from(Buffer.from(assets.images.avatar.data))),
-		]);
-		images = { photo, avatar } as unknown as CanvasAssets;
-		const t3 = performance.now();
-		return { importMs: t1 - t0, fontsMs: t2 - t1, assetsMs: t3 - t2 };
+	async import() {
+		const mod = await import("pureimage");
+		return {
+			async registerFonts(fonts) {
+				for (const font of fonts) {
+					await mod.registerFont(font.path, registeredName(font.family, font.weight === 700)).load();
+				}
+			},
+			decodeImage: (png) => mod.decodePNGFromStream(Readable.from(Buffer.from(png))),
+			createSurface(width, height, format) {
+				const bitmap = mod.make(width, height);
+				const ctx = rewriteFonts(bitmap.getContext("2d") as unknown as Canvas2D);
+				return (paint, quality) => {
+					withoutRasterizerNoise(() => paint(ctx));
+					return collectStream((stream) =>
+						format === "png" ? mod.encodePNGToStream(bitmap, stream) : mod.encodeJPEGToStream(bitmap, stream, quality),
+					);
+				};
+			},
+		};
 	},
-
-	async render(scenario: Scenario, format: OutputFormat, options: RenderOptions) {
-		const key = `${scenario.width}x${scenario.height}`;
-		let entry = bitmaps.get(key);
-		if (!entry) {
-			const bitmap = mod!.make(scenario.width, scenario.height) as unknown as PureBitmap;
-			entry = { bitmap, ctx: shimFont(bitmap.getContext("2d")) };
-			bitmaps.set(key, entry);
-		}
-		// pureimage logs rasterizer warnings ("can't project the same paths")
-		// via console.log on degenerate curves; suppress them or they flood CI
-		// logs at hundreds of lines per render.
-		const log = console.log;
-		console.log = () => {};
-		try {
-			entry.ctx.clearRect(0, 0, scenario.width, scenario.height);
-			scenario.drawCanvas!(entry.ctx, images!);
-		} finally {
-			console.log = log;
-		}
-		if (format === "png") {
-			return collectStream((s) => mod!.encodePNGToStream(entry.bitmap as never, s));
-		}
-		if (format === "jpeg") {
-			return collectStream((s) => mod!.encodeJPEGToStream(entry.bitmap as never, s, options.quality));
-		}
-		throw new Error(`format not supported: ${format}`);
-	},
-};
+});

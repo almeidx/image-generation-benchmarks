@@ -1,15 +1,14 @@
-import type { Scenario } from "../types.ts";
+import { FONT_FAMILY } from "../assets.ts";
 import { baselineY, el, fillTextCentered, fontString, roundedRectPath } from "./helpers.ts";
+import type { Scenario } from "./types.ts";
 
-/** The headline real-world case: a 1200x630 social/OG card. */
 export const ogCard: Scenario = {
 	name: "og-card",
 	description: "1200x630 social card: gradient background, badge, title, subtitle, avatar footer",
 	width: 1200,
 	height: 630,
-	kinds: ["canvas", "declarative"],
 
-	drawCanvas(ctx, assets) {
+	canvas(ctx, images) {
 		const bg = ctx.createLinearGradient(0, 0, 1200, 630);
 		bg.addColorStop(0, "#0f172a");
 		bg.addColorStop(0.55, "#1e1b4b");
@@ -46,7 +45,7 @@ export const ogCard: Scenario = {
 		ctx.beginPath();
 		ctx.arc(120, 510, 40, 0, Math.PI * 2);
 		ctx.clip();
-		ctx.drawImage(assets.avatar, 80, 470, 80, 80);
+		ctx.drawImage(images.avatar, 80, 470, 80, 80);
 		ctx.restore();
 
 		ctx.fillStyle = "#e2e8f0";
@@ -57,7 +56,7 @@ export const ogCard: Scenario = {
 		ctx.fillText("github.com/almeidx", 180, baselineY(522, 22));
 	},
 
-	element(assets) {
+	declarative(images) {
 		return el(
 			"div",
 			{
@@ -66,7 +65,7 @@ export const ogCard: Scenario = {
 					height: "100%",
 					display: "flex",
 					position: "relative",
-					fontFamily: "Inter",
+					fontFamily: FONT_FAMILY,
 					backgroundImage: "linear-gradient(to bottom right, #0f172a 0%, #1e1b4b 55%, #312e81 100%)",
 				},
 			},
@@ -152,7 +151,7 @@ export const ogCard: Scenario = {
 				"Seven libraries. Five runtimes. One fair benchmark.",
 			),
 			el("img", {
-				src: assets.avatarSrc,
+				src: images.avatar,
 				width: 80,
 				height: 80,
 				style: {

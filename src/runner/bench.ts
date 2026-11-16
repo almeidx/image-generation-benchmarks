@@ -11,28 +11,26 @@ import os from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { bench, run } from "mitata";
-import type { BenchEntry, BenchResultFile, BenchStats } from "../types.ts";
-import { formatExtensions, resultsDir } from "../utils/assets.ts";
-import { detectRuntime, runtimeId } from "../utils/runtime.ts";
-import { comboKey, prepare, renderOptions, type Combo } from "./prepare.ts";
+import { benchResultPath, outputPath } from "../layout.ts";
+import { comboName, type BenchEntry, type BenchResultFile, type BenchStats } from "../results.ts";
+import { detectRuntime, runtimeId } from "../runtime.ts";
+import { prepare, type Combo } from "./prepare.ts";
 
 /** Quick-mode defaults. More samples than a smoke test needs, because the PR
- * A/B comment compares medians and gates on measured noise — a steadier
+ * A/B comment compares medians and gates on measured noise: a steadier
  * estimate directly reduces false "regressions" on unrelated PRs. The
  * perf-baseline workflow overrides these upward for an even stabler reference. */
 const QUICK_WARMUP = 5;
 const QUICK_SAMPLES = 30;
 
 async function quickStats(combo: Combo, samples: number, warmup: number): Promise<BenchStats> {
-	const WARMUP = warmup;
-	const SAMPLES = samples;
-	for (let i = 0; i < WARMUP; i++) {
-		await combo.adapter.render(combo.scenario, combo.format, renderOptions);
+	for (let i = 0; i < warmup; i++) {
+		await combo.render();
 	}
 	const samplesNs: number[] = [];
-	for (let i = 0; i < SAMPLES; i++) {
+	for (let i = 0; i < samples; i++) {
 		const t0 = performance.now();
-		await combo.adapter.render(combo.scenario, combo.format, renderOptions);
+		await combo.render();
 		samplesNs.push((performance.now() - t0) * 1e6);
 	}
 	samplesNs.sort((a, b) => a - b);
@@ -59,19 +57,11 @@ const { values } = parseArgs({
 		warmup: { type: "string" },
 	},
 });
-const opts = {
-	quick: values.quick,
-	adapters: values.adapters?.split(","),
-	scenarios: values.scenarios?.split(","),
-	out: values.out,
-	samples: values.samples === undefined ? undefined : Number(values.samples),
-	warmup: values.warmup === undefined ? undefined : Number(values.warmup),
-};
 const runtime = detectRuntime();
 const id = runtimeId(runtime);
-console.log(`runtime: ${id}${opts.quick ? " (quick mode)" : ""}`);
+console.log(`runtime: ${id}${values.quick ? " (quick mode)" : ""}`);
 
-const prepared = await prepare({ adapters: opts.adapters, scenarios: opts.scenarios });
+const prepared = await prepare({ adapters: values.adapters?.split(","), scenarios: values.scenarios?.split(",") });
 
 for (const [name, info] of Object.entries(prepared.libraries)) {
 	if (info.status === "unsupported") {
@@ -79,27 +69,31 @@ for (const [name, info] of Object.entries(prepared.libraries)) {
 	}
 }
 for (const entry of prepared.unsupported) {
-	console.warn(`! ${entry.adapter} / ${entry.scenario} / ${entry.format}: ${entry.reason}`);
+	console.warn(`! ${comboName(entry)}: ${entry.reason}`);
 }
 
-// Persist the preflight render outputs for validation reuse and the gallery.
-const outputsDir = path.join(resultsDir, "outputs", id);
+// Preflight outputs feed the report's gallery.
 for (const combo of prepared.combos) {
-	const dir = path.join(outputsDir, combo.adapter.name);
-	await mkdir(dir, { recursive: true });
-	const ext = formatExtensions[combo.format];
-	await writeFile(path.join(dir, `${combo.scenario.name}.${ext}`), combo.output);
+	const file = outputPath(id, combo.adapter, combo.scenario, combo.format);
+	await mkdir(path.dirname(file), { recursive: true });
+	await writeFile(file, combo.output);
 }
-console.log(`${prepared.combos.length} combinations across ${prepared.ready.length} libraries`);
+const readyCount = Object.values(prepared.libraries).filter((info) => info.status === "ok").length;
+console.log(`${prepared.combos.length} combinations across ${readyCount} libraries`);
 
 const entries: BenchEntry[] = [];
+const entry = (combo: Combo, stats: BenchStats): BenchEntry => ({
+	adapter: combo.adapter,
+	scenario: combo.scenario,
+	format: combo.format,
+	stats,
+});
 
-if (opts.quick) {
-	const samples = opts.samples ?? QUICK_SAMPLES;
-	const warmup = opts.warmup ?? QUICK_WARMUP;
-	// Guard the counts before the sampling loop: a bad --samples/--warmup (empty,
-	// non-numeric, negative, fractional) would otherwise silently yield an empty
-	// sample array and NaN stats — and these are user inputs on perf-baseline.yml.
+if (values.quick) {
+	const samples = values.samples === undefined ? QUICK_SAMPLES : Number(values.samples);
+	const warmup = values.warmup === undefined ? QUICK_WARMUP : Number(values.warmup);
+	// A bad --samples/--warmup (empty, non-numeric, negative, fractional) would
+	// otherwise silently yield NaN stats; these are user inputs on perf-baseline.yml.
 	if (!Number.isInteger(samples) || samples < 1) {
 		console.error(`--samples must be a positive integer (got ${JSON.stringify(values.samples)})`);
 		process.exit(1);
@@ -111,23 +105,16 @@ if (opts.quick) {
 	console.log(`quick mode: ${warmup} warmup + ${samples} samples per combination`);
 	for (const combo of prepared.combos) {
 		const stats = await quickStats(combo, samples, warmup);
-		entries.push({
-			adapter: combo.adapter.name,
-			scenario: combo.scenario.name,
-			format: combo.format,
-			stats,
-		});
-		console.log(
-			`${comboKey(combo.adapter.name, combo.scenario.name, combo.format)}: ${(stats.avgNs / 1e6).toFixed(2)} ms avg`,
-		);
+		entries.push(entry(combo, stats));
+		console.log(`${comboName(combo)}: ${(stats.avgNs / 1e6).toFixed(2)} ms avg`);
 	}
 } else {
 	const lookup = new Map<string, Combo>();
 	for (const combo of prepared.combos) {
-		const key = comboKey(combo.adapter.name, combo.scenario.name, combo.format);
-		lookup.set(key, combo);
-		bench(key, async () => {
-			await combo.adapter.render(combo.scenario, combo.format, renderOptions);
+		const name = comboName(combo);
+		lookup.set(name, combo);
+		bench(name, async () => {
+			await combo.render();
 		});
 	}
 	const result = await run();
@@ -135,11 +122,8 @@ if (opts.quick) {
 		const combo = lookup.get(b.alias);
 		const stats = b.runs[0]?.stats;
 		if (!combo || !stats) continue;
-		entries.push({
-			adapter: combo.adapter.name,
-			scenario: combo.scenario.name,
-			format: combo.format,
-			stats: {
+		entries.push(
+			entry(combo, {
 				avgNs: stats.avg,
 				minNs: stats.min,
 				maxNs: stats.max,
@@ -147,8 +131,8 @@ if (opts.quick) {
 				p75Ns: stats.p75,
 				p99Ns: stats.p99,
 				samples: stats.ticks,
-			},
-		});
+			}),
+		);
 	}
 }
 
@@ -161,13 +145,13 @@ const file: BenchResultFile = {
 		cpu: os.cpus()[0]?.model ?? "unknown",
 	},
 	timestamp: new Date().toISOString(),
-	quick: opts.quick,
+	quick: values.quick,
 	libraries: prepared.libraries,
 	benchmarks: entries,
 	unsupported: prepared.unsupported,
 };
 
-const outPath = opts.out ?? path.join(resultsDir, `${id}.json`);
+const outPath = values.out ?? benchResultPath(id);
 await mkdir(path.dirname(outPath), { recursive: true });
 await writeFile(outPath, `${JSON.stringify(file, null, "\t")}\n`);
 console.log(`results written to ${outPath}`);

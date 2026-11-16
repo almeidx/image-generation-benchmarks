@@ -6,11 +6,12 @@
  * (validation-<runtime>.json) in the results directory, which in CI is the
  * merged artifact download from all matrix jobs.
  */
-import { cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import type { BenchResultFile, OutputFormat, ValidationResultFile } from "../types.ts";
-import { repoRoot, resultsDir } from "../utils/assets.ts";
+import { outputsDir, resultsDir, siteDir } from "../layout.ts";
+import { formatMs, isMissingFile, readResultFiles } from "../results.ts";
+import { runtimeLabel, type RuntimeInfo } from "../runtime.ts";
 
 const { values: cliArgs } = parseArgs({
 	args: process.argv.slice(2),
@@ -22,44 +23,19 @@ const { values: cliArgs } = parseArgs({
 const inputDir = path.resolve(cliArgs.results ?? resultsDir);
 const outPath = path.resolve(cliArgs.out ?? path.join(inputDir, "RESULTS.md"));
 
-async function collectFiles(dir: string, predicate: (name: string) => boolean): Promise<string[]> {
-	const found: string[] = [];
-	let entries;
-	try {
-		entries = await readdir(dir, { withFileTypes: true });
-	} catch {
-		return found;
-	}
-	for (const entry of entries) {
-		const full = path.join(dir, entry.name);
-		if (entry.isDirectory()) found.push(...(await collectFiles(full, predicate)));
-		else if (predicate(entry.name)) found.push(full);
-	}
-	return found;
-}
-
-const benchFiles: BenchResultFile[] = [];
-const validationFiles: ValidationResultFile[] = [];
-for (const file of await collectFiles(inputDir, (n) => n.endsWith(".json"))) {
-	const data = JSON.parse(await readFile(file, "utf8")) as Record<string, unknown>;
-	if (data.schemaVersion !== 1) continue;
-	if (Array.isArray(data.benchmarks)) benchFiles.push(data as unknown as BenchResultFile);
-	else if (Array.isArray(data.baselines)) validationFiles.push(data as unknown as ValidationResultFile);
-}
+const { bench: benchFiles, validations: validationFiles } = await readResultFiles(inputDir);
 if (benchFiles.length === 0) {
 	console.error(`no bench result files found under ${inputDir}`);
 	process.exit(1);
 }
 
-const runtimeLabel = (f: BenchResultFile | ValidationResultFile) => `${f.runtime.name} ${f.runtime.version}`;
-benchFiles.sort((a, b) => runtimeLabel(a).localeCompare(runtimeLabel(b)));
+const fileLabel = (f: { runtime: RuntimeInfo }) => runtimeLabel(f.runtime);
+benchFiles.sort((a, b) => fileLabel(a).localeCompare(fileLabel(b)));
 
 const allAdapters = [...new Set(benchFiles.flatMap((f) => Object.keys(f.libraries)))];
 const allScenarios = [...new Set(benchFiles.flatMap((f) => f.benchmarks.map((b) => b.scenario)))];
-const allFormats = [...new Set(benchFiles.flatMap((f) => f.benchmarks.map((b) => b.format)))] as OutputFormat[];
+const allFormats = [...new Set(benchFiles.flatMap((f) => f.benchmarks.map((b) => b.format)))];
 
-const ms = (ns: number) => ns / 1e6;
-const fmtMs = (ns: number) => (ms(ns) >= 100 ? ms(ns).toFixed(0) : ms(ns).toPrecision(3));
 const opsSec = (ns: number) => (1e9 / ns >= 100 ? (1e9 / ns).toFixed(0) : (1e9 / ns).toPrecision(3));
 
 const lines: string[] = [];
@@ -75,10 +51,9 @@ if (benchFiles.some((f) => f.quick)) {
 }
 lines.push("");
 
-// Library support per runtime.
 lines.push("## Libraries");
 lines.push("");
-lines.push(`| Library | Version | ${benchFiles.map(runtimeLabel).join(" | ")} |`);
+lines.push(`| Library | Version | ${benchFiles.map(fileLabel).join(" | ")} |`);
 lines.push(`| --- | --- | ${benchFiles.map(() => "---").join(" | ")} |`);
 for (const adapter of allAdapters) {
 	const version = benchFiles.map((f) => f.libraries[adapter]?.version).find(Boolean) ?? "?";
@@ -91,7 +66,6 @@ for (const adapter of allAdapters) {
 }
 lines.push("");
 
-// Cold start phases.
 lines.push("## Cold start / setup cost");
 lines.push("");
 lines.push(
@@ -99,13 +73,14 @@ lines.push(
 );
 lines.push("");
 for (const f of benchFiles) {
-	lines.push(`<details><summary>${runtimeLabel(f)}</summary>`);
+	lines.push(`<details><summary>${fileLabel(f)}</summary>`);
 	lines.push("");
 	lines.push("| Library | import | fonts | images | first render | total |");
 	lines.push("| --- | --- | --- | --- | --- | --- |");
 	for (const adapter of allAdapters) {
-		const setup = f.libraries[adapter]?.setup;
-		if (!setup) continue;
+		const info = f.libraries[adapter];
+		if (info?.status !== "ok") continue;
+		const { setup } = info;
 		const total = setup.importMs + setup.fontsMs + setup.assetsMs + setup.firstRenderMs;
 		lines.push(
 			`| ${adapter} | ${setup.importMs.toFixed(1)} ms | ${setup.fontsMs.toFixed(1)} ms | ${setup.assetsMs.toFixed(1)} ms | ${setup.firstRenderMs.toFixed(1)} ms | ${total.toFixed(1)} ms |`,
@@ -116,7 +91,6 @@ for (const f of benchFiles) {
 	lines.push("");
 }
 
-// Steady-state benchmarks: per scenario, per format.
 lines.push("## Benchmarks");
 lines.push("");
 lines.push(
@@ -138,7 +112,7 @@ for (const scenario of allScenarios) {
 		if (rows.length === 0) continue;
 		lines.push(`**${format}**`);
 		lines.push("");
-		lines.push(`| Library | ${benchFiles.map(runtimeLabel).join(" | ")} |`);
+		lines.push(`| Library | ${benchFiles.map(fileLabel).join(" | ")} |`);
 		lines.push(`| --- | ${benchFiles.map(() => "---").join(" | ")} |`);
 		const best = benchFiles.map((_, col) => {
 			const values = rows.map((r) => r.cells[col]?.stats.avgNs).filter((v): v is number => v !== undefined);
@@ -147,7 +121,7 @@ for (const scenario of allScenarios) {
 		for (const row of rows) {
 			const cells = row.cells.map((cell, col) => {
 				if (!cell) return "—";
-				const text = `${fmtMs(cell.stats.avgNs)} ms (${opsSec(cell.stats.avgNs)}/s)`;
+				const text = `${formatMs(cell.stats.avgNs)} (${opsSec(cell.stats.avgNs)}/s)`;
 				return cell.stats.avgNs === best[col] ? `**${text}**` : text;
 			});
 			lines.push(`| ${row.adapter} | ${cells.join(" | ")} |`);
@@ -156,16 +130,15 @@ for (const scenario of allScenarios) {
 	}
 }
 
-// Unsupported combinations.
 const unsupportedRows: string[] = [];
 for (const f of benchFiles) {
 	for (const [name, info] of Object.entries(f.libraries)) {
 		if (info.status === "unsupported") {
-			unsupportedRows.push(`| ${name} | ${runtimeLabel(f)} | (library failed to load) | ${info.error ?? ""} |`);
+			unsupportedRows.push(`| ${name} | ${fileLabel(f)} | (library failed to load) | ${info.error} |`);
 		}
 	}
 	for (const u of f.unsupported) {
-		unsupportedRows.push(`| ${u.adapter} | ${runtimeLabel(f)} | ${u.scenario} / ${u.format} | ${u.reason} |`);
+		unsupportedRows.push(`| ${u.adapter} | ${fileLabel(f)} | ${u.scenario} / ${u.format} | ${u.reason} |`);
 	}
 }
 if (unsupportedRows.length > 0) {
@@ -177,14 +150,13 @@ if (unsupportedRows.length > 0) {
 	lines.push("");
 }
 
-// Validation summary.
 if (validationFiles.length > 0) {
 	lines.push("## Validation");
 	lines.push("");
 	const failures = validationFiles.flatMap((v) =>
 		v.baselines
 			.filter((b) => !b.pass)
-			.map((b) => `| ${b.adapter} | ${runtimeLabel(v)} | ${b.scenario} | ${(b.diffRatio * 100).toFixed(2)}% |`),
+			.map((b) => `| ${b.adapter} | ${fileLabel(v)} | ${b.scenario} | ${(b.diffRatio * 100).toFixed(2)}% |`),
 	);
 	if (failures.length === 0) {
 		lines.push("✅ All outputs match their committed per-library baselines.");
@@ -228,8 +200,6 @@ await mkdir(path.dirname(outPath), { recursive: true });
 await writeFile(outPath, lines.join("\n"));
 console.log(`report written to ${outPath}`);
 
-// Site data + gallery.
-const siteDir = path.join(repoRoot, "site", "public");
 await mkdir(siteDir, { recursive: true });
 await writeFile(
 	path.join(siteDir, "data.json"),
@@ -246,30 +216,22 @@ await writeFile(
 );
 console.log(`site data written to ${path.join(siteDir, "data.json")}`);
 
-// Gallery: rendered outputs from one runtime (prefer the newest node) plus
-// cross-library diff images.
-const outputRoots = await collectFiles(inputDir, (n) => n.endsWith(".png")).then((files) =>
-	[...new Set(files.map((f) => path.dirname(f)))].filter((d) => d.includes(`outputs${path.sep}`)),
-);
-const runtimes = [...new Set(outputRoots.map((d) => d.split(`outputs${path.sep}`)[1]?.split(path.sep)[0]))].filter(
-	(r): r is string => Boolean(r),
-);
-const galleryRuntime =
-	runtimes
-		.filter((r) => r.startsWith("node"))
-		.toSorted()
-		.pop() ?? runtimes[0];
+// Gallery: rendered outputs from one runtime (prefer the newest node), where
+// site/public/app.js loads them from.
+let runtimes: string[] = [];
+try {
+	const entries = await readdir(outputsDir(inputDir), { withFileTypes: true });
+	runtimes = entries
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => entry.name)
+		.toSorted();
+} catch (error) {
+	if (!isMissingFile(error)) throw error;
+}
+const galleryRuntime = runtimes.filter((r) => r.startsWith("node")).pop() ?? runtimes[0];
 if (galleryRuntime) {
-	const sourceDir = outputRoots[0]!.split(`outputs${path.sep}`)[0]!;
-	await cp(path.join(sourceDir, "outputs", galleryRuntime), path.join(siteDir, "gallery", "outputs"), {
+	await cp(path.join(outputsDir(inputDir), galleryRuntime), path.join(siteDir, "gallery", "outputs"), {
 		recursive: true,
 	});
-	try {
-		await cp(path.join(sourceDir, "diffs", galleryRuntime, "cross"), path.join(siteDir, "gallery", "diffs"), {
-			recursive: true,
-		});
-	} catch {
-		// No cross diffs available — gallery just shows outputs.
-	}
 	console.log(`gallery copied from runtime ${galleryRuntime}`);
 }

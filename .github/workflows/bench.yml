@@ -19,11 +19,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { id: node-22, runtime: node, version: "22.23.5" }
-          - { id: node-24, runtime: node, version: "24.22.3" }
-          - { id: node-26, runtime: node, version: "26.13.1" }
-          - { id: bun, runtime: bun }
-          - { id: deno, runtime: deno }
+          - { id: node-22, runtime: node, version: "22.23.5", run: node }
+          - { id: node-24, runtime: node, version: "24.22.3", run: node }
+          - { id: node-26, runtime: node, version: "26.13.1", run: node }
+          - { id: bun, runtime: bun, run: bun }
+          - { id: deno, runtime: deno, run: deno run -A }
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -63,20 +63,10 @@ jobs:
         run: deno install --allow-scripts
 
       - name: Run benchmarks
-        run: |
-          case "${{ matrix.runtime }}" in
-            node) node src/runner/bench.ts ;;
-            bun)  bun src/runner/bench.ts ;;
-            deno) deno run -A src/runner/bench.ts ;;
-          esac
+        run: ${{ matrix.run }} src/runner/bench.ts
 
       - name: Validate outputs against baselines
-        run: |
-          case "${{ matrix.runtime }}" in
-            node) node src/runner/validate.ts ;;
-            bun)  bun src/runner/validate.ts ;;
-            deno) deno run -A src/runner/validate.ts ;;
-          esac
+        run: ${{ matrix.run }} src/runner/validate.ts
 
       - name: Upload results
         if: always()
@@ -96,7 +86,7 @@ jobs:
 
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24.22.3"
+          node-version-file: .node-version
 
       - name: Download all results
         uses: actions/download-artifact@v8.0.2
@@ -161,7 +151,7 @@ jobs:
         if: steps.creds.outputs.available == 'true'
         uses: actions/setup-node@v7.1.0
         with:
-          node-version: "24.22.3"
+          node-version-file: .node-version
 
       - name: Deploy to Cloudflare Workers
         if: steps.creds.outputs.available == 'true'

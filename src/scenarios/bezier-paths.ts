@@ -1,5 +1,5 @@
-import type { Scenario } from "../types.ts";
 import { seededRandom } from "./helpers.ts";
+import type { Scenario } from "./types.ts";
 
 const PALETTE: [number, number, number][] = [
 	[99, 102, 241],
@@ -11,19 +11,16 @@ const PALETTE: [number, number, number][] = [
 ];
 
 /**
- * Path-heavy stress test: hundreds of stroked cubic beziers and arcs.
- * Canvas-only — declarative engines have no arbitrary path API.
- * Geometry is generated from a fixed seed so every library draws the
- * exact same curves.
+ * Canvas-only: declarative engines have no arbitrary path API. Geometry comes
+ * from a fixed seed so every library draws the exact same curves.
  */
 export const bezierPaths: Scenario = {
 	name: "bezier-paths",
 	description: "240 cubic beziers + 80 arcs + dashed quadratics, seeded geometry",
 	width: 800,
 	height: 600,
-	kinds: ["canvas"],
 
-	drawCanvas(ctx) {
+	canvas(ctx) {
 		const rand = seededRandom(0xbe21e5);
 		const color = (alpha: number) => {
 			const [r, g, b] = PALETTE[Math.floor(rand() * PALETTE.length)] as [number, number, number];
