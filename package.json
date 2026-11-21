@@ -22,8 +22,8 @@
 		"@napi-rs/canvas": "1.1.1",
 		"@resvg/resvg-js": "2.6.2",
 		"@resvg/resvg-wasm": "2.6.2",
-		"@takumi-rs/core": "2.20.0",
-		"@takumi-rs/helpers": "2.20.0",
+		"@takumi-rs/core": "2.22.0",
+		"@takumi-rs/helpers": "2.22.0",
 		"canvas": "3.2.3",
 		"canvaskit-wasm": "0.42.0",
 		"fast-png": "8.0.0",
@@ -31,7 +31,7 @@
 		"pixelmatch": "8.0.0",
 		"pureimage": "0.4.20",
 		"satori": "0.63.2",
-		"skia-canvas": "4.0.0"
+		"skia-canvas": "4.0.1"
 	},
 	"devDependencies": {
 		"@types/node": "26.6.6",
