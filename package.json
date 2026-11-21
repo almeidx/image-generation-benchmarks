@@ -36,15 +36,15 @@
 	"devDependencies": {
 		"@types/node": "26.6.6",
 		"@types/react": "19.3.0",
-		"oxfmt": "0.78.0",
-		"oxlint": "1.93.0",
+		"oxfmt": "0.79.0",
+		"oxlint": "1.94.0",
 		"oxlint-tsgolint": "7.0.2007",
 		"typescript": "7.0.2"
 	},
 	"engines": {
 		"node": ">=22.18.0"
 	},
-	"packageManager": "pnpm@12.18.0",
+	"packageManager": "pnpm@12.21.0",
 	"trustedDependencies": [
 		"canvas"
 	]
